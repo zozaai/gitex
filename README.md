@@ -20,7 +20,6 @@
 - [ ] Copy text to clipboard
 - [ ] Download generated text
 - [ ] Support for private repositories
-- [ ] Browser-based for privacy and security
 - [ ] Download zip of selected files
 - [ ] Local directory support
 
@@ -38,6 +37,7 @@ $ pip install gitex
 $ gitex --help
 $ gitex .             # current repository
 $ gitex path/to/repo  # any repo path
+$ gitex url           # repo url
 ...
 ```
 
