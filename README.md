@@ -22,7 +22,7 @@
 - [x] Support for private repositories
 - [ ] Download zip of selected files
 - [x] Local directory support
-- [ ] make into pypi package
+- [x] make into pypi package
 
 ## ✨ Features
 
