@@ -1,43 +1,38 @@
+from fnmatch import fnmatch
 from pathlib import Path
-from typing import List
 
 import click
 
-# Default names to skip
-DEFAULT_EXCLUDES = {".git", ".gitignore"}
+EXCLUDE_PATTERNS = [".git", ".gitignore", "*.egg-info", "__pycache__"]
 
 
-def print_tree(path: Path, prefix: str = "", excludes: List[str] = None):
-    """Recursively prints a directory tree for `path`, skipping excluded names."""
-    excludes = set(excludes or []) | DEFAULT_EXCLUDES
+def print_tree(path: Path, prefix: str = ""):
     entries = sorted(
-        (e for e in path.iterdir() if e.name not in excludes),
+        (
+            e
+            for e in path.iterdir()
+            if not any(fnmatch(e.name, pat) for pat in EXCLUDE_PATTERNS)
+        ),
         key=lambda e: (e.is_file(), e.name.lower()),
     )
     count = len(entries)
-    for idx, entry in enumerate(entries, start=1):
+    for idx, entry in enumerate(entries, 1):
         connector = "└── " if idx == count else "├── "
         click.echo(f"{prefix}{connector}{entry.name}")
         if entry.is_dir():
             extension = "    " if idx == count else "│   "
-            print_tree(entry, prefix=prefix + extension, excludes=excludes)
+            print_tree(entry, prefix + extension)
 
 
 @click.command()
 @click.argument("path", type=click.Path(exists=True), default=".")
-@click.option(
-    "-e",
-    "--exclude",
-    multiple=True,
-    help="Additional file or directory names to skip (can be repeated).",
-)
-def cli(path, exclude):
+def cli(path):
     """
-    Prints the folder tree at PATH, ignoring .git and .gitignore by default.
+    Prints the folder tree at PATH, skipping .git, .gitignore, and *.egg-info.
     """
     root = Path(path)
     click.echo(root.resolve().name)
-    print_tree(root, excludes=list(exclude))
+    print_tree(root)
 
 
 if __name__ == "__main__":
