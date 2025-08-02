@@ -1,1 +1,2 @@
 textual==5.2.0
+click>=8.0
