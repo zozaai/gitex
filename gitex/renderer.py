@@ -13,49 +13,65 @@ class Rendered:
 
     def render_tree(self) -> str:
         """Return an ASCII tree of the FileNode hierarchy."""
-        def _render(nodes: List[FileNode], prefix: str = "") -> List[str]:
-            lines: List[str] = []
-            count = len(nodes)
-            for idx, node in enumerate(nodes):
-                connector = "└── " if idx == count - 1 else "├── "
-                line = f"{prefix}{connector}{node.name}" + ("/" if node.node_type == "directory" else "")
-                lines.append(line)
-                if node.children:
-                    extension = "    " if idx == count - 1 else "│   "
-                    lines.extend(_render(node.children, prefix + extension))
-            return lines
+        lines = []
+        for root in self.nodes:
+            lines.append(self._format_node_header(root))
+            if root.children:
+                lines.extend(self._format_children(root.children, prefix=""))
+        return "\n".join(lines)
 
-        header = []
-        for node in self.nodes:
-            # top-level nodes: no connector, name as root
-            header.append(node.name + ("/" if node.node_type == "directory" else ""))
+    def _format_node_header(self, node: FileNode) -> str:
+        """Format the header line for a root node."""
+        suffix = "/" if node.node_type == "directory" else ""
+        return f"{node.name}{suffix}"
+
+    def _format_children(self, nodes: List[FileNode], prefix: str) -> List[str]:
+        """Recursively format child nodes with ASCII connectors."""
+        formatted = []
+        count = len(nodes)
+        for index, node in enumerate(nodes):
+            is_last = (index == count - 1)
+            connector = "└── " if is_last else "├── "
+            suffix = "/" if node.node_type == "directory" else ""
+            formatted.append(f"{prefix}{connector}{node.name}{suffix}")
+
             if node.children:
-                header.extend(_render(node.children, ""))
-        return "\n".join(header)
+                next_prefix = prefix + ("    " if is_last else "│   ")
+                formatted.extend(self._format_children(node.children, next_prefix))
+        return formatted
 
     def render_files(self, base_dir: Optional[str] = None) -> str:
-        """Return all file contents, each prefixed by its full path."""
-        outputs: List[str] = []
-        def _collect_files(nodes: List[FileNode]):
-            for node in nodes:
-                if node.node_type == "file":
-                    yield node
-                if node.children:
-                    yield from _collect_files(node.children)
+        """Return all file contents, each block prefixed by its full or relative path."""
+        file_nodes = self._collect_files(self.nodes)
+        blocks = []
 
-        for file_node in _collect_files(self.nodes):
-            path = file_node.path
-            if base_dir and path.startswith(base_dir):
-                path_display = path[len(base_dir):].lstrip(os.sep)
-            else:
-                path_display = path
+        for node in file_nodes:
+            path_display = self._relative_path(node.path, base_dir)
+            content = self._read_file(node.path)
+            blocks.append(f"# {path_display}\n{content}")
 
-            try:
-                with open(path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-            except Exception as e:
-                content = f"<Error reading file: {e}>"
+        return "\n\n".join(blocks)
 
-            outputs.append(f"# {path_display}\n{content}")
+    def _collect_files(self, nodes: List[FileNode]) -> List[FileNode]:
+        """Traverse nodes and return a list of FileNode objects of type 'file'."""
+        files = []
+        for node in nodes:
+            if node.node_type == "file":
+                files.append(node)
+            if node.children:
+                files.extend(self._collect_files(node.children))
+        return files
 
-        return "\n\n".join(outputs)
+    def _relative_path(self, path: str, base_dir: Optional[str]) -> str:
+        """Strip base_dir prefix from path if provided, else return full path."""
+        if base_dir and path.startswith(base_dir):
+            return path[len(base_dir):].lstrip(os.sep)
+        return path
+
+    def _read_file(self, path: str) -> str:
+        """Safely read file contents, returning error message on failure."""
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                return f.read()
+        except Exception as e:
+            return f"<Error reading file: {e}>"
