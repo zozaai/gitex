@@ -13,15 +13,15 @@
 
 
 ## 📝 To-Do
-- [ ] Display GitHub repository structure
+- [x] Display GitHub repository structure
 - [ ] Select files/directories to include
 - [ ] Filter files by extensions
 - [ ] Generate formatted text file
 - [ ] Copy text to clipboard
 - [ ] Download generated text
-- [ ] Support for private repositories
+- [x] Support for private repositories
 - [ ] Download zip of selected files
-- [ ] Local directory support
+- [x] Local directory support
 
 ## ✨ Features
 
