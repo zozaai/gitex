@@ -2,7 +2,9 @@
 from fnmatch import fnmatch
 from pathlib import Path
 import click
-from gitex.picker import DefaultPicker, InteractivePicker
+
+from gitex.picker.base import DefaultPicker
+from gitex.picker.textuals import TextualPicker# <-- updated here
 from gitex.renderer import Renderer
 
 # Patterns to exclude from rendering
@@ -15,14 +17,13 @@ def _filter_nodes(nodes):
     """
     filtered = []
     for node in nodes:
-        # Skip if name matches any exclude pattern
         if any(fnmatch(node.name, pat) for pat in EXCLUDE_PATTERNS):
             continue
-        # If directory, filter its children too
         if node.children:
             node.children = _filter_nodes(node.children)
         filtered.append(node)
     return filtered
+
 
 @click.command()
 @click.argument("path", type=click.Path(exists=True), default='.')
@@ -42,7 +43,7 @@ def cli(path, interactive, no_files, base_dir):
 
     # Choose picker strategy
     if interactive:
-        picker = InteractivePicker(ignore_hidden=True, respect_gitignore=True)
+        picker = TextualPicker(ignore_hidden=True, respect_gitignore=True)  # <-- updated
     else:
         picker = DefaultPicker(ignore_hidden=True, respect_gitignore=True)
 
@@ -59,6 +60,7 @@ def cli(path, interactive, no_files, base_dir):
     if not no_files:
         click.echo("\n\n### File Contents ###\n")
         click.echo(renderer.render_files(base_dir or str(root)))
+
 
 if __name__ == "__main__":
     cli()
