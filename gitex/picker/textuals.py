@@ -21,7 +21,7 @@ class TextualPicker(Picker):
         return app.selected_nodes
 
 class _PickerApp(App):
-    CSS_PATH = None  # Optional: provide a CSS file for styling
+    CSS = None
     BINDINGS = [
         ("space", "toggle", "Toggle file or folder selection"),
         ("c", "confirm", "Confirm selection"),
@@ -61,26 +61,57 @@ class _PickerApp(App):
             event.stop()
             self.action_toggle()
 
+    def _update_parent_nodes(self, node: TreeNode) -> None:
+        """Update parent nodes' labels based on children's selection state."""
+        current = node.parent
+        while current and current.data:  # Stop at root (no data)
+            file_node: FileNode = current.data
+            children = current.children
+            selected_children = [
+                child for child in children
+                if child.data.path in self.selected_paths or child.label.plain.startswith("[-")
+            ]
+            if selected_children:
+                # If any child is selected or partially selected, mark parent
+                all_selected = all(
+                    child.data.path in self.selected_paths or child.label.plain.startswith("[-")
+                    for child in children
+                )
+                label = f"[{'x' if all_selected else '-'}] {file_node.name}"
+                current.set_label(label)
+                current.refresh()
+            else:
+                # No children selected, reset parent to unselected
+                current.set_label(f"[ ] {file_node.name}")
+                current.refresh()
+            current = current.parent
+
     def _toggle_node_and_children(self, node: TreeNode, select: bool) -> None:
-        """Recursively toggle a node and its children."""
+        """Recursively toggle a node and its children, updating UI."""
         file_node: FileNode = node.data
-        label = node.label.plain
+        # Debugging: Print toggle action
+        print(f"Toggling {file_node.path} (type: {file_node.node_type}) to {'select' if select else 'deselect'}")
         new_label = f"[{'x' if select else ' '}] {file_node.name}"
         node.set_label(new_label)
         if select:
             self.selected_paths.add(file_node.path)
         else:
             self.selected_paths.discard(file_node.path)
-        # Recursively update children for directories
+        # Debugging: Print current selected_paths
+        print(f"Selected paths: {self.selected_paths}")
+        # Recursively update children for directories only
         if file_node.node_type == "directory":
             for child in node.children:
                 self._toggle_node_and_children(child, select)
-        node.tree.refresh_line(node.line)
+        node.refresh()  # Refresh the node to update UI
+        # Update parent nodes to reflect selection state
+        self._update_parent_nodes(node)
 
     def action_toggle(self):
         tree = self.query_one("#picker-tree", Tree)
         node: TreeNode = tree.cursor_node
         if not node or not node.data:
+            print("No valid node selected for toggle")
             return
         file_node: FileNode = node.data
         label = node.label.plain
@@ -90,8 +121,7 @@ class _PickerApp(App):
     async def action_confirm(self) -> None:
         def _gather(nodes: List[FileNode]):
             for n in nodes:
-                # Include files and optionally folders if desired
-                if n.path in self.selected_paths and n.node_type == "file":
+                if n.path in self.selected_paths:  
                     yield n
                 if n.children:
                     yield from _gather(n.children)
