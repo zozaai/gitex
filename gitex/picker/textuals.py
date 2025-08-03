@@ -113,7 +113,7 @@ class _PickerApp(App):
         if not node or not node.data:
             print("No valid node selected for toggle")
             return
-        file_node: FileNode = node.data
+        # file_node: FileNode = node.data
         label = node.label.plain
         select = not label.startswith("[x]")
         self._toggle_node_and_children(node, select)
