@@ -1,2 +1,4 @@
 textual==5.2.0
 click>=8.0
+questionary==2.1.0
+pathspec>=0.10.1,<1.0
