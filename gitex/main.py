@@ -36,7 +36,7 @@ def cli(path, no_files, base_dir):
     root = Path(path).resolve()
 
     # Build FileNode hierarchy
-    picker = DefaultPicker(ignore_hidden=True)
+    picker = DefaultPicker(ignore_hidden=True, respect_gitignore=True)
     raw_nodes = picker.pick(str(root))
 
     # Apply exclusion filters
