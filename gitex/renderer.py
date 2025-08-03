@@ -2,7 +2,7 @@ from typing import List, Optional
 from gitex.models import FileNode
 import os
 
-class Rendered:
+class Renderer:
     """
     Rendered takes a list of FileNode objects and produces prompt-ready representations:
       - render_tree(): shows the directory/file hierarchy in ASCII form
