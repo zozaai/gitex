@@ -14,7 +14,7 @@
 
 ## 📝 To-Do
 - [x] Display GitHub repository structure
-- [ ] Select files/directories to include
+- [x] Select files/directories to include
 - [ ] Filter files by extensions
 - [ ] Generate formatted text file
 - [ ] Copy text to clipboard
