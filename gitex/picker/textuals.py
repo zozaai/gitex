@@ -1,11 +1,12 @@
-from typing import List
+from typing import List, Set
 from gitex.models import FileNode
 from gitex.picker.base import Picker, DefaultPicker
 from textual.app import App, ComposeResult
 from textual.widgets import Tree, Button, Header, Footer
+from textual.scroll_view import ScrollView
 from textual.widgets.tree import TreeNode
 from textual.containers import Horizontal
-from textual import events
+from textual.message import Message
 
 class TextualPicker(Picker):
     """
@@ -20,112 +21,138 @@ class TextualPicker(Picker):
         app.run()
         return app.selected_nodes
 
-class _PickerApp(App):
-    CSS = None
+class _PickerApp(App):  # pylint: disable=too-many-public-methods
+    CSS = """
+    ScrollView {
+        height: 1fr;
+        width: 1fr;
+    }
+    #picker-tree {
+        border: solid gray;
+        padding: 1;
+    }
+    Button {
+        margin: 1 2;
+    }
+    """
     BINDINGS = [
         ("space", "toggle", "Toggle file or folder selection"),
+        ("enter", "toggle", "Toggle on Enter"),
         ("c", "confirm", "Confirm selection"),
-        ("q", "quit", "Quit"),
+        ("q", "quit", "Quit without selecting"),
     ]
+
+    class Confirmed(Message):
+        """Message sent when selection is confirmed."""
+        def __init__(self, paths: List[str]) -> None:
+            super().__init__()
+            self.paths = paths
 
     def __init__(self, nodes: List[FileNode], **kwargs):
         super().__init__(**kwargs)
         self.nodes = nodes
-        self.selected_paths: set[str] = set()
+        self.selected_paths: Set[str] = set()
         self.selected_nodes: List[FileNode] = []
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
         tree = Tree("Files to include", id="picker-tree")
-        self._build_tree(tree.root, self.nodes)
-        yield tree
+        # build only root level
+        for node in self.nodes:
+            tree.root.add(self._format_label(node), data=node, allow_expand=bool(node.children))
+        yield ScrollView(tree)
         with Horizontal():
             yield Button("Confirm", id="confirm", variant="success")
             yield Button("Quit", id="quit", variant="error")
         yield Footer()
 
     async def on_mount(self) -> None:
-        tree = self.query_one("#picker-tree", Tree)
-        tree.focus()
+        # Focus the tree for keyboard navigation
+        self.query_one(Tree).focus()
 
-    def _build_tree(self, parent: TreeNode, nodes: List[FileNode]):
-        for node in nodes:
-            label = "[ ] " + node.name
-            branch = parent.add(label, data=node, expand=node.node_type == "directory")
-            if node.children:
-                self._build_tree(branch, node.children)
-
-    def on_key(self, event: events.Key) -> None:
-        # Prevent default Enter behavior (expand/collapse) for Tree
-        if event.key == "enter":
-            event.stop()
-            self.action_toggle()
-
-    def _update_parent_nodes(self, node: TreeNode) -> None:
-        """Update parent nodes' labels based on children's selection state."""
-        current = node.parent
-        while current and current.data:  # Stop at root (no data)
-            file_node: FileNode = current.data
-            children = current.children
-            selected_children = [
-                child for child in children
-                if child.data.path in self.selected_paths or child.label.plain.startswith("[-")
-            ]
-            if selected_children:
-                # If any child is selected or partially selected, mark parent
-                all_selected = all(
-                    child.data.path in self.selected_paths or child.label.plain.startswith("[-")
-                    for child in children
-                )
-                label = f"[{'x' if all_selected else '-'}] {file_node.name}"
-                current.set_label(label)
-                current.refresh()
-            else:
-                # No children selected, reset parent to unselected
-                current.set_label(f"[ ] {file_node.name}")
-                current.refresh()
-            current = current.parent
-
-    def _toggle_node_and_children(self, node: TreeNode, select: bool) -> None:
-        """Recursively toggle a node and its children, updating UI."""
+    async def on_tree_node_expanded(self, event: Tree.NodeExpanded) -> None:
+        """Lazy-load children on expand."""
+        node = event.node
         file_node: FileNode = node.data
-        # Debugging: Print toggle action
-        print(f"Toggling {file_node.path} (type: {file_node.node_type}) to {'select' if select else 'deselect'}")
-        new_label = f"[{'x' if select else ' '}] {file_node.name}"
-        node.set_label(new_label)
+        # load children only once
+        if file_node and not node.children:
+            for child in file_node.children:
+                node.add(self._format_label(child), data=child, allow_expand=bool(child.children))
+
+    async def on_tree_node_selected(self, event: Tree.NodeSelected) -> None:
+        """Toggle selection when a node is clicked or selected."""
+        node = event.node
+        if node.data is None:
+            return
+        self._toggle_recursively(node, node.data.path not in self.selected_paths)
+        self.query_one(Tree).refresh(layout=True)
+
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "confirm":
+            await self.action_confirm()
+        elif event.button.id == "quit":
+            await self.action_quit()
+
+    def _format_label(self, file_node: FileNode) -> str:
+        """Generate label with checkbox based on selection state."""
+        mark = "[x]" if file_node.path in self.selected_paths else "[ ]"
+        return f"{mark} {file_node.name}"
+
+    def _toggle_recursively(self, node: TreeNode, select: bool) -> None:
+        """Recursively toggle node and its children, then update ancestors."""
+        if node.data is None:
+            return
+        file_node: FileNode = node.data
         if select:
             self.selected_paths.add(file_node.path)
         else:
             self.selected_paths.discard(file_node.path)
-        # Debugging: Print current selected_paths
-        print(f"Selected paths: {self.selected_paths}")
-        # Recursively update children for directories only
-        if file_node.node_type == "directory":
-            for child in node.children:
-                self._toggle_node_and_children(child, select)
-        node.refresh()  # Refresh the node to update UI
-        # Update parent nodes to reflect selection state
-        self._update_parent_nodes(node)
+        node.set_label(self._format_label(file_node))
+        # toggle children
+        for child in node.children:
+            self._toggle_recursively(child, select)
+        # update ancestors
+        if node.parent and node.parent.data:
+            self._update_parent_label(node.parent)
 
-    def action_toggle(self):
-        tree = self.query_one("#picker-tree", Tree)
-        node: TreeNode = tree.cursor_node
-        if not node or not node.data:
-            print("No valid node selected for toggle")
-            return
-        # file_node: FileNode = node.data
-        label = node.label.plain
-        select = not label.startswith("[x]")
-        self._toggle_node_and_children(node, select)
+    def _update_parent_label(self, node: TreeNode) -> None:
+        """Update a parent node's label based on its children's selection state."""
+        file_node: FileNode = node.data  # type: ignore
+        child_paths = [c.data.path for c in node.children if c.data]
+        selected = [p for p in child_paths if p in self.selected_paths]
+        if child_paths and len(selected) == len(child_paths):
+            mark = "[x]"
+        elif selected:
+            mark = "[-]"
+        else:
+            mark = "[ ]"
+        node.set_label(f"{mark} {file_node.name}")
+        # recurse up
+        if node.parent and node.parent.data:
+            self._update_parent_label(node.parent)
+
+    async def action_toggle(self) -> None:
+        tree = self.query_one(Tree)
+        node = tree.cursor_node
+        if node and node.data:
+            select = node.data.path not in self.selected_paths
+            self._toggle_recursively(node, select)
+            tree.refresh(layout=True)
+        else:
+            self.log("No node selected to toggle.")
 
     async def action_confirm(self) -> None:
-        def _gather(nodes: List[FileNode]):
+        """Gather selected nodes, post message, and exit."""
+        def gather(nodes: List[FileNode]) -> List[FileNode]:
+            out: List[FileNode] = []
             for n in nodes:
-                if n.path in self.selected_paths:  
-                    yield n
+                if n.path in self.selected_paths:
+                    out.append(n)
                 if n.children:
-                    yield from _gather(n.children)
-        self.selected_nodes = list(_gather(self.nodes))
+                    out.extend(gather(n.children))
+            return out
+        self.selected_nodes = gather(self.nodes)
+        self.post_message(self.Confirmed(list(self.selected_paths)))
         self.exit()
 
     async def action_quit(self) -> None:
