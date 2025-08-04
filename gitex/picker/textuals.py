@@ -7,6 +7,8 @@ from textual.scroll_view import ScrollView
 from textual.widgets.tree import TreeNode
 from textual.containers import Horizontal
 from textual.message import Message
+from textual import events
+from rich.text import Text
 
 class TextualPicker(Picker):
     """
@@ -76,10 +78,13 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
             for child in file_node.children:
                 node.add(self._format_label(child), data=child, allow_expand=bool(child.children))
 
-    def _format_label(self, file_node: FileNode) -> str:
-        """Generate label with checkbox based on selection state."""
+    def _format_label(self, file_node: FileNode) -> Text:
+        """Generate label with colored checkbox and name based on selection state."""
         mark = "[x]" if file_node.path in self.selected_paths else "[ ]"
-        return f"{mark} {file_node.name}"
+        label = f"{mark} {file_node.name}"
+        if file_node.path in self.selected_paths:
+            return Text(label, style="bold green")
+        return Text(label)
 
     def _toggle_recursively(self, node: TreeNode, select: bool) -> None:
         """Recursively toggle node and its children, then update ancestors."""
@@ -107,11 +112,15 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
             mark = "[-]"
         else:
             mark = "[ ]"
-        node.set_label(f"{mark} {file_node.name}")
+        label = f"{mark} {file_node.name}"
+        if file_node.path in self.selected_paths:
+            node.set_label(Text(label, style="bold green"))
+        else:
+            node.set_label(Text(label))
         if node.parent and node.parent.data:
             self._update_parent_label(node.parent)
 
-    async def on_key(self, event) -> None:
+    async def on_key(self, event: events.Key) -> None:
         """Handle key presses: space to toggle, enter to confirm, q to quit."""
         tree = self.query_one(Tree)
         node = tree.cursor_node
