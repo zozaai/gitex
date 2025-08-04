@@ -33,6 +33,11 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
         border: solid gray;
         padding: 1;
     }
+    /* this is the focused row highlight */
+    #picker-tree .cursor-line {
+        background: blue;
+        color: white;      /* optional: make text pop on the blue bar */
+    }
     Button {
         margin: 1 2;
     }
