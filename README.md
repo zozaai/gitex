@@ -44,7 +44,7 @@ $ gitex url           # repo url
 
 
 ## 📸 Demo
-No demo provided yet
+![Preview](docs/gitex_demo.png)
 
 
 
