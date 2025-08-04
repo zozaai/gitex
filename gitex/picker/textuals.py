@@ -37,8 +37,7 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
     """
     BINDINGS = [
         ("space", "toggle", "Toggle file or folder selection"),
-        ("enter", "toggle", "Toggle on Enter"),
-        ("c", "confirm", "Confirm selection"),
+        ("enter", "confirm", "Confirm selection"),
         ("q", "quit", "Quit without selecting"),
     ]
 
@@ -62,7 +61,6 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
             tree.root.add(self._format_label(node), data=node, allow_expand=bool(node.children))
         yield ScrollView(tree)
         with Horizontal():
-            yield Button("Confirm", id="confirm", variant="success")
             yield Button("Quit", id="quit", variant="error")
         yield Footer()
 
@@ -74,24 +72,9 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
         """Lazy-load children on expand."""
         node = event.node
         file_node: FileNode = node.data
-        # load children only once
         if file_node and not node.children:
             for child in file_node.children:
                 node.add(self._format_label(child), data=child, allow_expand=bool(child.children))
-
-    async def on_tree_node_selected(self, event: Tree.NodeSelected) -> None:
-        """Toggle selection when a node is clicked or selected."""
-        node = event.node
-        if node.data is None:
-            return
-        self._toggle_recursively(node, node.data.path not in self.selected_paths)
-        self.query_one(Tree).refresh(layout=True)
-
-    async def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "confirm":
-            await self.action_confirm()
-        elif event.button.id == "quit":
-            await self.action_quit()
 
     def _format_label(self, file_node: FileNode) -> str:
         """Generate label with checkbox based on selection state."""
@@ -108,10 +91,8 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
         else:
             self.selected_paths.discard(file_node.path)
         node.set_label(self._format_label(file_node))
-        # toggle children
         for child in node.children:
             self._toggle_recursively(child, select)
-        # update ancestors
         if node.parent and node.parent.data:
             self._update_parent_label(node.parent)
 
@@ -127,19 +108,28 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
         else:
             mark = "[ ]"
         node.set_label(f"{mark} {file_node.name}")
-        # recurse up
         if node.parent and node.parent.data:
             self._update_parent_label(node.parent)
+
+    async def on_key(self, event) -> None:
+        """Handle key presses: space to toggle, enter to confirm, q to quit."""
+        tree = self.query_one(Tree)
+        node = tree.cursor_node
+        if event.key == "space" and node and node.data:
+            await self.action_toggle()
+            event.stop()
+        elif event.key == "enter":
+            await self.action_confirm()
+            event.stop()
+        elif event.key == "q":
+            await self.action_quit()
+            event.stop()
 
     async def action_toggle(self) -> None:
         tree = self.query_one(Tree)
         node = tree.cursor_node
-        if node and node.data:
-            select = node.data.path not in self.selected_paths
-            self._toggle_recursively(node, select)
-            tree.refresh(layout=True)
-        else:
-            self.log("No node selected to toggle.")
+        self._toggle_recursively(node, node.data.path not in self.selected_paths)  # type: ignore
+        tree.refresh(layout=True)
 
     async def action_confirm(self) -> None:
         """Gather selected nodes, post message, and exit."""
