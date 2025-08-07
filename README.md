@@ -16,7 +16,7 @@
 - [x] Display GitHub repository structure
 - [x] Select files/directories to include
 - [ ] Filter files by extensions
-- [ ] Generate formatted text file
+- [x] Generate formatted text file
 - [ ] Copy text to clipboard
 - [ ] Download generated text
 - [x] Support for private repositories
@@ -25,6 +25,10 @@
 - [x] make into pypi package
 
 ## ✨ Features
+- **Docstring Extraction**: Extract and format docstrings and function/class signatures from Python files, inspired by Sphinx. This is perfect for providing high-level context to LLMs without the noise of implementation details.
+  - Extract from all Python files: `gitex . --extract-docstrings`
+  - Extract from a specific class or function: `gitex . --extract-docstrings gitex.renderer.Renderer`
+
 
 
 ## 📥 Installation

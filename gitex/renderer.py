@@ -1,5 +1,7 @@
 from typing import List, Optional
 from gitex.models import FileNode
+from gitex.docstring_extractor import extract_docstrings
+from pathlib import Path
 import os
 
 class Renderer:
@@ -49,6 +51,43 @@ class Renderer:
             path_display = self._relative_path(node.path, base_dir)
             content = self._read_file(node.path)
             blocks.append(f"# {path_display}\n{content}")
+
+        return "\n\n".join(blocks)
+
+    def render_docstrings(self, base_dir: Optional[str] = None, symbol_target: Optional[str] = None) -> str:
+        """Return all file contents, each block prefixed by its full or relative path."""
+        file_nodes = self._collect_files(self.nodes)
+        blocks = []
+
+        if symbol_target:
+            # If a symbol is targeted, we find the corresponding file and extract from it.
+            path_parts = symbol_target.split('.')
+            # First, try to find a file path that matches the symbol
+            target_file_path = None
+            for i in range(len(path_parts), 0, -1):
+                potential_path = os.path.join(*path_parts[:i]) + ".py"
+                for node in file_nodes:
+                    if node.path.endswith(potential_path):
+                        target_file_path = node.path
+                        break
+                if target_file_path:
+                    break
+            
+            if target_file_path:
+                path_display = self._relative_path(target_file_path, base_dir)
+                content = extract_docstrings(Path(target_file_path), symbol_target)
+                blocks.append(f"# {path_display}\n{content}")
+            else:
+                return f"Error: Could not find a Python file corresponding to the symbol '{symbol_target}'."
+
+        else:
+            # Original behavior: extract from all Python files.
+            for node in file_nodes:
+                if not node.name.endswith(".py"):
+                    continue
+                path_display = self._relative_path(node.path, base_dir)
+                content = extract_docstrings(Path(node.path))
+                blocks.append(f"# {path_display}\n{content}")
 
         return "\n\n".join(blocks)
 
