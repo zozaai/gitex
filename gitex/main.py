@@ -4,10 +4,11 @@ from pathlib import Path
 import click
 
 from gitex.picker.base import DefaultPicker
-from gitex.picker.textuals import TextualPicker# <-- updated here
+from gitex.picker.textuals import TextualPicker
 from gitex.renderer import Renderer
 from gitex.docstring_extractor import extract_docstrings
 from gitex.picker.agentic import AgenticPicker # import sgentic mode 
+
 
 # Patterns to exclude from rendering
 EXCLUDE_PATTERNS = [".git", ".gitignore", "*.egg-info", "__pycache__"]
@@ -40,7 +41,7 @@ def _filter_nodes(nodes):
               metavar="SYMBOL_PATH", default=None, is_flag=False, flag_value="*")
 @click.option("--agentic", is_flag=True, help="Enable interactive AI-powered analysis") # -- added a agentic mode 
 
-def cli(path, interactive, no_files, base_dir, extract_symbol):
+def cli(path, interactive, no_files, base_dir, extract_symbol, agentic):
     """
     Renders a repository's file tree and optional file contents for LLM prompts.
 
@@ -50,12 +51,16 @@ def cli(path, interactive, no_files, base_dir, extract_symbol):
 
     # Choose picker strategy
     if interactive:
-        picker = TextualPicker(ignore_hidden=True, respect_gitignore=True)  # <-- updated
+        picker = TextualPicker(ignore_hidden=True, respect_gitignore=True)
     else:
         picker = DefaultPicker(ignore_hidden=True, respect_gitignore=True)
-
+    
     # Build FileNode hierarchy
     raw_nodes = picker.pick(str(root))
+    # added if for agentic display aodes in interactive mode
+    if agentic:
+        agentic_picker = AgenticPicker()
+        raw_nodes = agentic_picker.run_interactive_mode(raw_nodes)
 
     # Apply exclusion filters
     nodes = _filter_nodes(raw_nodes)
