@@ -7,6 +7,7 @@ from gitex.picker.base import DefaultPicker
 from gitex.picker.textuals import TextualPicker# <-- updated here
 from gitex.renderer import Renderer
 from gitex.docstring_extractor import extract_docstrings
+from gitex.picker.agentic import AgenticPicker # import sgentic mode 
 
 # Patterns to exclude from rendering
 EXCLUDE_PATTERNS = [".git", ".gitignore", "*.egg-info", "__pycache__"]
@@ -37,6 +38,8 @@ def _filter_nodes(nodes):
 @click.option("--extract-docstrings", "extract_symbol",
               help="Extract docstrings for a specific symbol (e.g., gitex.renderer.Renderer) or all files if no symbol is provided.",
               metavar="SYMBOL_PATH", default=None, is_flag=False, flag_value="*")
+@click.option("--agentic", is_flag=True, help="Enable interactive AI-powered analysis") # -- added a agentic mode 
+
 def cli(path, interactive, no_files, base_dir, extract_symbol):
     """
     Renders a repository's file tree and optional file contents for LLM prompts.
