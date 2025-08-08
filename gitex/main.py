@@ -6,6 +6,7 @@ import click
 from gitex.picker.base import DefaultPicker
 from gitex.picker.textuals import TextualPicker# <-- updated here
 from gitex.renderer import Renderer
+from gitex.docstring_extractor import extract_docstrings
 
 # Patterns to exclude from rendering
 EXCLUDE_PATTERNS = [".git", ".gitignore", "*.egg-info", "__pycache__"]
@@ -33,7 +34,10 @@ def _filter_nodes(nodes):
               help="Only render the directory tree without file contents.")
 @click.option("--base-dir", default=None,
               help="Strip this prefix from file paths when rendering file contents.")
-def cli(path, interactive, no_files, base_dir):
+@click.option("--extract-docstrings", "extract_symbol",
+              help="Extract docstrings for a specific symbol (e.g., gitex.renderer.Renderer) or all files if no symbol is provided.",
+              metavar="SYMBOL_PATH", default=None, is_flag=False, flag_value="*")
+def cli(path, interactive, no_files, base_dir, extract_symbol):
     """
     Renders a repository's file tree and optional file contents for LLM prompts.
 
@@ -58,8 +62,13 @@ def cli(path, interactive, no_files, base_dir):
     click.echo(renderer.render_tree())
 
     if not no_files:
-        click.echo("\n\n### File Contents ###\n")
-        click.echo(renderer.render_files(base_dir or str(root)))
+        if extract_symbol:
+            click.echo("\n\n### Extracted Docstrings and Signatures ###\n")
+            symbol_target = None if extract_symbol == "*" else extract_symbol
+            click.echo(renderer.render_docstrings(base_dir or str(root), symbol_target))
+        else:
+            click.echo("\n\n### File Contents ###\n")
+            click.echo(renderer.render_files(base_dir or str(root)))
 
 
 if __name__ == "__main__":
