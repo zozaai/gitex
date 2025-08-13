@@ -7,6 +7,7 @@ from gitex.picker.base import DefaultPicker
 from gitex.picker.textuals import TextualPicker# <-- updated here
 from gitex.renderer import Renderer
 from gitex.docstring_extractor import extract_docstrings
+from gitex.dependency_mapper import DependencyMapper, format_dependency_analysis
 
 # Patterns to exclude from rendering
 EXCLUDE_PATTERNS = [".git", ".gitignore", "*.egg-info", "__pycache__"]
@@ -39,11 +40,20 @@ def _filter_nodes(nodes):
               metavar="SYMBOL_PATH", default=None, is_flag=False, flag_value="*")
 @click.option("--include-empty-classes", is_flag=True,
               help="Include classes and functions without docstrings when using --extract-docstrings.")
-def cli(path, interactive, no_files, base_dir, extract_symbol, include_empty_classes):
+@click.option("--map-dependencies", "dependency_focus",
+              help="Analyze and map code dependencies and relationships. Options: 'imports', 'inheritance', 'calls', or omit for all.",
+              metavar="FOCUS", default=None, is_flag=False, flag_value="all")
+def cli(path, interactive, no_files, base_dir, extract_symbol, include_empty_classes, dependency_focus):
     """
     Renders a repository's file tree and optional file contents for LLM prompts.
 
     You can choose files interactively, respect .gitignore, and exclude patterns.
+    
+    Features:
+    - Extract docstrings and signatures from Python files
+    - Map dependencies and relationships between code components
+    - Interactive file selection
+    - Gitignore-aware filtering
     """
     root = Path(path).resolve()
 
@@ -64,7 +74,30 @@ def cli(path, interactive, no_files, base_dir, extract_symbol, include_empty_cla
     click.echo(renderer.render_tree())
 
     if not no_files:
-        if extract_symbol:
+        if dependency_focus:
+            click.echo("\n\n### Dependency & Relationship Map ###\n")
+            
+            # Get Python files from the selected nodes
+            python_files = []
+            def collect_python_files(nodes):
+                for node in nodes:
+                    if node.node_type == "file" and node.name.endswith(".py"):
+                        python_files.append(node.path)
+                    if node.children:
+                        collect_python_files(node.children)
+            
+            collect_python_files(nodes)
+            
+            # Analyze dependencies
+            mapper = DependencyMapper(str(root))
+            analysis = mapper.analyze(python_files)
+            
+            # Format and display results
+            focus_value = None if dependency_focus == "all" else dependency_focus
+            formatted_output = format_dependency_analysis(analysis, focus_value)
+            click.echo(formatted_output)
+            
+        elif extract_symbol:
             click.echo("\n\n### Extracted Docstrings and Signatures ###\n")
             symbol_target = None if extract_symbol == "*" else extract_symbol
             click.echo(renderer.render_docstrings(base_dir or str(root), symbol_target, include_empty_classes))
