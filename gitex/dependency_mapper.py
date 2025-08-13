@@ -303,36 +303,30 @@ def format_dependency_analysis(analysis: DependencyAnalysis, focus: Optional[str
     if not focus or focus == 'imports':
         output.append("## 📦 Import Dependencies\n")
         
-        # Group by file and show dependencies
-        for file_path, imports in analysis.imports.items():
+        # Group and deduplicate imports
+        for file_path, imports in sorted(analysis.imports.items()):
             if not imports:
                 continue
                 
-            internal_imports = [imp for imp in imports if not imp.is_external]
-            external_imports = [imp for imp in imports if imp.is_external]
+            internal_modules = set()
+            external_modules = set()
             
-            if internal_imports or external_imports:
-                output.append(f"**{file_path}** imports:")
+            for imp in imports:
+                if imp.is_external:
+                    external_modules.add(imp.module.split('.')[0])  # Use root module only
+                else:
+                    internal_modules.add(imp.module)
+            
+            if internal_modules or external_modules:
+                output.append(f"**{file_path}**")
                 
-                if internal_imports:
-                    output.append("  Internal:")
-                    for imp in internal_imports:
-                        if imp.is_from_import and imp.imported_names:
-                            names = ", ".join(imp.imported_names)
-                            output.append(f"    - from {imp.module} import {names}")
-                        else:
-                            alias_str = f" as {imp.alias}" if imp.alias else ""
-                            output.append(f"    - import {imp.module}{alias_str}")
+                if internal_modules:
+                    internal_list = ", ".join(sorted(internal_modules))
+                    output.append(f"  Internal: {internal_list}")
                 
-                if external_imports:
-                    output.append("  External:")
-                    for imp in external_imports:
-                        if imp.is_from_import and imp.imported_names:
-                            names = ", ".join(imp.imported_names[:3])  # Limit for readability
-                            names += "..." if len(imp.imported_names) > 3 else ""
-                            output.append(f"    - from {imp.module} import {names}")
-                        else:
-                            output.append(f"    - import {imp.module}")
+                if external_modules:
+                    external_list = ", ".join(sorted(external_modules))
+                    output.append(f"  External: {external_list}")
                 
                 output.append("")
     
@@ -387,34 +381,42 @@ def format_dependency_analysis(analysis: DependencyAnalysis, focus: Optional[str
     if not focus or focus == 'calls':
         output.append("## 🔄 Function Call Relationships\n")
         
-        # Show functions that call other functions
-        functions_with_calls = {k: v for k, v in analysis.functions.items() 
-                              if v.calls or analysis.function_call_graph.get(k)}
+        # Build a clean call graph by grouping by file and removing duplicates
+        call_graph = {}
         
-        if functions_with_calls:
-            for func_key, func_info in sorted(functions_with_calls.items()):
+        for func_key, func_info in analysis.functions.items():
+            calls = analysis.function_call_graph.get(func_key, set())
+            if calls:
+                file_path = func_info.file_path
+                if file_path not in call_graph:
+                    call_graph[file_path] = []
+                
                 class_prefix = f"{func_info.class_name}." if func_info.class_name else ""
-                output.append(f"**{class_prefix}{func_info.name}()** ({func_info.file_path})")
+                caller_name = f"{class_prefix}{func_info.name}()"
                 
-                # Show what this function calls
-                calls = analysis.function_call_graph.get(func_key, set())
-                if calls:
-                    output.append("  Calls:")
-                    for called_func_key in sorted(calls):
-                        if called_func_key in analysis.functions:
-                            called_func = analysis.functions[called_func_key]
-                            called_class_prefix = f"{called_func.class_name}." if called_func.class_name else ""
-                            output.append(f"    - {called_class_prefix}{called_func.name}() in {called_func.file_path}")
+                # Get unique called functions
+                called_functions = []
+                for called_func_key in sorted(calls):
+                    if called_func_key in analysis.functions:
+                        called_func = analysis.functions[called_func_key]
+                        called_class_prefix = f"{called_func.class_name}." if called_func.class_name else ""
+                        called_name = f"{called_class_prefix}{called_func.name}()"
+                        called_file = called_func.file_path
+                        
+                        # Format based on whether it's same file or cross-file
+                        if called_file == file_path:
+                            called_functions.append(called_name)
+                        else:
+                            called_functions.append(f"{called_name} [{called_file}]")
                 
-                # Show what calls this function
-                if func_info.called_by:
-                    output.append("  Called by:")
-                    for caller_key in sorted(func_info.called_by):
-                        if caller_key in analysis.functions:
-                            caller = analysis.functions[caller_key]
-                            caller_class_prefix = f"{caller.class_name}." if caller.class_name else ""
-                            output.append(f"    - {caller_class_prefix}{caller.name}() in {caller.file_path}")
-                
+                if called_functions:
+                    call_graph[file_path].append(f"{caller_name} → {', '.join(called_functions)}")
+        
+        if call_graph:
+            for file_path in sorted(call_graph.keys()):
+                output.append(f"**{file_path}**:")
+                for call_relationship in call_graph[file_path]:
+                    output.append(f"  - {call_relationship}")
                 output.append("")
         else:
             output.append("No function call relationships found.\n")
