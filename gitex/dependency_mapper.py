@@ -163,9 +163,19 @@ class DependencyMapper:
             for call in func_info.calls:
                 # Try to find the called function in our analysis
                 for other_key, other_func in self.analysis.functions.items():
-                    if (other_func.name == call or 
-                        other_key.endswith(f".{call}") or 
-                        (func_info.class_name and f"{func_info.class_name}.{call}" in other_key)):
+                    if other_key == func_key:  # Skip self
+                        continue
+                    
+                    # More precise matching:
+                    # 1. Exact name match within same file/class
+                    # 2. Method call on same class (self.method)
+                    # 3. Cross-file function call
+                    same_file = func_info.file_path == other_func.file_path
+                    same_class = func_info.class_name == other_func.class_name
+                    
+                    if (other_func.name == call and same_file and same_class) or \
+                       (other_func.name == call and same_file and not func_info.class_name and not other_func.class_name) or \
+                       (other_key.endswith(f"::{call}") and not same_file):
                         self.analysis.function_call_graph[func_key].add(other_key)
                         other_func.called_by.append(func_key)
                         break

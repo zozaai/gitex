@@ -73,31 +73,32 @@ def cli(path, interactive, no_files, base_dir, extract_symbol, include_empty_cla
     renderer = Renderer(nodes)
     click.echo(renderer.render_tree())
 
-    if not no_files:
-        if dependency_focus:
-            click.echo("\n\n### Dependency & Relationship Map ###\n")
-            
-            # Get Python files from the selected nodes
-            python_files = []
-            def collect_python_files(nodes):
-                for node in nodes:
-                    if node.node_type == "file" and node.name.endswith(".py"):
-                        python_files.append(node.path)
-                    if node.children:
-                        collect_python_files(node.children)
-            
-            collect_python_files(nodes)
-            
-            # Analyze dependencies
-            mapper = DependencyMapper(str(root))
-            analysis = mapper.analyze(python_files)
-            
-            # Format and display results
-            focus_value = None if dependency_focus == "all" else dependency_focus
-            formatted_output = format_dependency_analysis(analysis, focus_value)
-            click.echo(formatted_output)
-            
-        elif extract_symbol:
+    # Handle dependency mapping (works independently of --no-files)
+    if dependency_focus:
+        click.echo("\n\n### Dependency & Relationship Map ###\n")
+        
+        # Get Python files from the selected nodes
+        python_files = []
+        def collect_python_files(nodes):
+            for node in nodes:
+                if node.node_type == "file" and node.name.endswith(".py"):
+                    python_files.append(node.path)
+                if node.children:
+                    collect_python_files(node.children)
+        
+        collect_python_files(nodes)
+        
+        # Analyze dependencies
+        mapper = DependencyMapper(str(root))
+        analysis = mapper.analyze(python_files)
+        
+        # Format and display results
+        focus_value = None if dependency_focus == "all" else dependency_focus
+        formatted_output = format_dependency_analysis(analysis, focus_value)
+        click.echo(formatted_output)
+    
+    elif not no_files:
+        if extract_symbol:
             click.echo("\n\n### Extracted Docstrings and Signatures ###\n")
             symbol_target = None if extract_symbol == "*" else extract_symbol
             click.echo(renderer.render_docstrings(base_dir or str(root), symbol_target, include_empty_classes))
