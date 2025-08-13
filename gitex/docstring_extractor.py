@@ -2,7 +2,7 @@ import ast
 from pathlib import Path
 from typing import Optional, List
 
-def extract_docstrings(file_path: Path, symbol_path: Optional[str] = None) -> str:
+def extract_docstrings(file_path: Path, symbol_path: Optional[str] = None, include_empty_classes: bool = False) -> str:
     """
     Extracts module, class, and function docstrings and signatures from a Python file,
     preserving the code structure. If a symbol_path is provided, it extracts
@@ -56,6 +56,10 @@ def extract_docstrings(file_path: Path, symbol_path: Optional[str] = None) -> st
             docstring = ast.get_docstring(node)
             if docstring:
                 output.append(f'{indent}    """{docstring}"""')
+            elif not include_empty_classes:
+                # Remove the signature we just added if no docstring and not including empty classes
+                output.pop()
+                return
 
             # If it's a class, process its body
             if isinstance(node, ast.ClassDef):

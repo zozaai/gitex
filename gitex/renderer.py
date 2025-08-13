@@ -54,7 +54,7 @@ class Renderer:
 
         return "\n\n".join(blocks)
 
-    def render_docstrings(self, base_dir: Optional[str] = None, symbol_target: Optional[str] = None) -> str:
+    def render_docstrings(self, base_dir: Optional[str] = None, symbol_target: Optional[str] = None, include_empty_classes: bool = False) -> str:
         """Return all file contents, each block prefixed by its full or relative path."""
         file_nodes = self._collect_files(self.nodes)
         blocks = []
@@ -75,7 +75,7 @@ class Renderer:
             
             if target_file_path:
                 path_display = self._relative_path(target_file_path, base_dir)
-                content = extract_docstrings(Path(target_file_path), symbol_target)
+                content = extract_docstrings(Path(target_file_path), symbol_target, include_empty_classes)
                 blocks.append(f"# {path_display}\n{content}")
             else:
                 return f"Error: Could not find a Python file corresponding to the symbol '{symbol_target}'."
@@ -86,7 +86,7 @@ class Renderer:
                 if not node.name.endswith(".py"):
                     continue
                 path_display = self._relative_path(node.path, base_dir)
-                content = extract_docstrings(Path(node.path))
+                content = extract_docstrings(Path(node.path), None, include_empty_classes)
                 blocks.append(f"# {path_display}\n{content}")
 
         return "\n\n".join(blocks)
