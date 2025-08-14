@@ -32,9 +32,9 @@ def _filter_nodes(nodes):
               help="Launch interactive picker to choose files")
 @click.option("--no-files", is_flag=True,
               help="Only render the directory tree without file contents.")
-@click.option("--base-dir", default=None,
+@click.option("-d", "--base-dir", default=None,
               help="Strip this prefix from file paths when rendering file contents.")
-@click.option("--extract-docstrings", "extract_symbol",
+@click.option("-ds", "--extract-docstrings", "extract_symbol",
               help="Extract docstrings for a specific symbol (e.g., gitex.renderer.Renderer) or all files if no symbol is provided.",
               metavar="SYMBOL_PATH", default=None, is_flag=False, flag_value="*")
 def cli(path, interactive, no_files, base_dir, extract_symbol):
