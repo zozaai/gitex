@@ -28,7 +28,7 @@ def _filter_nodes(nodes):
 
 @click.command()
 @click.argument("path", type=click.Path(exists=True), default='.')
-@click.option("--interactive", is_flag=True,
+@click.option("-i", "--interactive", is_flag=True,
               help="Launch interactive picker to choose files")
 @click.option("--no-files", is_flag=True,
               help="Only render the directory tree without file contents.")
