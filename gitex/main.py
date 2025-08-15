@@ -37,7 +37,9 @@ def _filter_nodes(nodes):
 @click.option("-ds", "--extract-docstrings", "extract_symbol",
               help="Extract docstrings for a specific symbol (e.g., gitex.renderer.Renderer) or all files if no symbol is provided.",
               metavar="SYMBOL_PATH", default=None, is_flag=False, flag_value="*")
-def cli(path, interactive, no_files, base_dir, extract_symbol):
+@click.option("--include-empty-classes", is_flag=True,
+              help="Include classes and functions without docstrings when using --extract-docstrings.")
+def cli(path, interactive, no_files, base_dir, extract_symbol, include_empty_classes):
     """
     Renders a repository's file tree and optional file contents for LLM prompts.
 
@@ -65,7 +67,7 @@ def cli(path, interactive, no_files, base_dir, extract_symbol):
         if extract_symbol:
             click.echo("\n\n### Extracted Docstrings and Signatures ###\n")
             symbol_target = None if extract_symbol == "*" else extract_symbol
-            click.echo(renderer.render_docstrings(base_dir or str(root), symbol_target))
+            click.echo(renderer.render_docstrings(base_dir or str(root), symbol_target, include_empty_classes))
         else:
             click.echo("\n\n### File Contents ###\n")
             click.echo(renderer.render_files(base_dir or str(root)))
