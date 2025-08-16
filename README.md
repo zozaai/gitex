@@ -57,6 +57,7 @@ $ gitex path/to/repo  # any repo path
 $ gitex url           # repo url
 $ gitex -i /path/to/repo > path/to/output.txt  # redirect to text file
 $ gitex -c            # also copy output to clipboard (Linux)
+$ gitex -ic           # also copy output to clipboard (Linux) in interactive mode
 ```
 
 
