@@ -43,6 +43,7 @@ $ gitex --help
 $ gitex .             # current repository
 $ gitex path/to/repo  # any repo path
 $ gitex url           # repo url
+$ gitex -i /path/to/repo > path/to/output.txt
 ...
 ```
 
