@@ -25,6 +25,28 @@
 - [x] make into pypi package
 
 ## ✨ Features
+
+
+### 📚 Docstring Extraction
+Extract and format docstrings and function/class signatures from Python files, inspired by Sphinx. Perfect for providing high-level context to LLMs without implementation noise.
+- Extract from all Python files: `gitex . --extract-docstrings`
+- Extract from a specific class or function: `gitex . --extract-docstrings gitex.renderer.Renderer`
+- Control empty classes: `gitex . --extract-docstrings --include-empty-classes`
+
+### 🔗 Dependency & Relationship Mapping  
+Analyze and visualize code architecture, dependencies, and relationships in your codebase. Essential for understanding how components interact before diving into implementation details.
+- **Full analysis**: `gitex . --map-dependencies`
+- **Focus on imports**: `gitex . --map-dependencies imports`
+- **Focus on inheritance**: `gitex . --map-dependencies inheritance` 
+- **Focus on function calls**: `gitex . --map-dependencies calls`
+
+**What it maps:**
+- 📦 **Import dependencies** - Which files depend on which other files
+- 🏗️ **Class inheritance hierarchies** - Parent-child relationships between classes
+- 🔄 **Function call relationships** - Which functions call which other functions
+- 📊 **Summary statistics** - Overview of codebase complexity and external dependencies
+
+=======
 - **Docstring Extraction**: Extract and format docstrings and function/class signatures from Python files, inspired by Sphinx. This is perfect for providing high-level context to LLMs without the noise of implementation details.
   - Extract from all Python files: `gitex . --extract-docstrings`
   - Extract from a specific class or function: `gitex . --extract-docstrings gitex.renderer.Renderer`
