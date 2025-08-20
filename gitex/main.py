@@ -4,10 +4,11 @@ from pathlib import Path
 import click
 
 from gitex.picker.base import DefaultPicker
-from gitex.picker.textuals import TextualPicker# <-- updated here
+from gitex.picker.textuals import TextualPicker
 from gitex.renderer import Renderer
 from gitex.docstring_extractor import extract_docstrings
 from gitex.dependency_mapper import DependencyMapper, format_dependency_analysis
+from gitex.utils import copy_to_clipboard
 
 # Patterns to exclude from rendering
 EXCLUDE_PATTERNS = [".git", ".gitignore", "*.egg-info", "__pycache__"]
@@ -29,13 +30,15 @@ def _filter_nodes(nodes):
 
 @click.command()
 @click.argument("path", type=click.Path(exists=True), default='.')
-@click.option("--interactive", is_flag=True,
+@click.option("-i", "--interactive", is_flag=True,
               help="Launch interactive picker to choose files")
 @click.option("--no-files", is_flag=True,
               help="Only render the directory tree without file contents.")
-@click.option("--base-dir", default=None,
+@click.option("-c", "--copy", "copy_clipboard", is_flag=True,
+              help="Copy the final output to clipboard (Linux: wl-copy/xclip/xsel).")
+@click.option("-d", "--base-dir", default=None,
               help="Strip this prefix from file paths when rendering file contents.")
-@click.option("--extract-docstrings", "extract_symbol",
+@click.option("-ds", "--extract-docstrings", "extract_symbol",
               help="Extract docstrings for a specific symbol (e.g., gitex.renderer.Renderer) or all files if no symbol is provided.",
               metavar="SYMBOL_PATH", default=None, is_flag=False, flag_value="*")
 @click.option("--include-empty-classes", is_flag=True,
@@ -54,6 +57,7 @@ def cli(path, interactive, no_files, base_dir, extract_symbol, include_empty_cla
     - Map dependencies and relationships between code components
     - Interactive file selection
     - Gitignore-aware filtering
+    Renders a repository's file tree and optional file contents for LLM prompts.
     """
     root = Path(path).resolve()
 
@@ -71,7 +75,6 @@ def cli(path, interactive, no_files, base_dir, extract_symbol, include_empty_cla
 
     # Render
     renderer = Renderer(nodes)
-    click.echo(renderer.render_tree())
 
     # Handle dependency mapping (works independently of --no-files)
     if dependency_focus:
@@ -98,13 +101,24 @@ def cli(path, interactive, no_files, base_dir, extract_symbol, include_empty_cla
         click.echo(formatted_output)
     
     elif not no_files:
+
         if extract_symbol:
-            click.echo("\n\n### Extracted Docstrings and Signatures ###\n")
+            out_parts.append("\n\n### Extracted Docstrings and Signatures ###\n")
             symbol_target = None if extract_symbol == "*" else extract_symbol
-            click.echo(renderer.render_docstrings(base_dir or str(root), symbol_target, include_empty_classes))
+            out_parts.append(renderer.render_docstrings(base_dir or str(root), symbol_target, include_empty_classes))
         else:
-            click.echo("\n\n### File Contents ###\n")
-            click.echo(renderer.render_files(base_dir or str(root)))
+            out_parts.append("\n\n### File Contents ###\n")
+            out_parts.append(renderer.render_files(base_dir or str(root)))
+
+    final_output = "".join(out_parts)
+    click.echo(final_output)
+
+    if copy_clipboard:
+        ok = copy_to_clipboard(final_output)
+        if ok:
+            click.secho("[Copied to clipboard]", err=True)
+        else:
+            click.secho("[Failed to copy to clipboard — install wl-clipboard or xclip or xsel]", fg="yellow", err=True)
 
 
 if __name__ == "__main__":

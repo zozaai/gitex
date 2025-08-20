@@ -42,11 +42,18 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
         margin: 1 2;
     }
     """
-    BINDINGS = [
-        ("space", "toggle", "Toggle file or folder selection"),
-        ("enter", "confirm", "Confirm selection"),
-        ("q", "quit", "Quit without selecting"),
-    ]
+    # BINDINGS = [
+    #     ("space", "toggle", "Toggle file or folder selection"),
+    #     ("enter", "confirm", "Confirm selection"),
+    #     ("q", "quit", "Quit without selecting"),
+    # ]
+
+    BINDINGS = [ ("space", "toggle", "Toggle file or folder selection"), 
+                 ("enter", "confirm", "Confirm selection"), 
+                 ("q", "quit", "Quit without selecting"), 
+                 ("left", "collapse_or_parent", "Collapse / go to parent"), 
+                 ("right", "expand_or_child", "Expand / go to first child")
+              ]
 
     class Confirmed(Message):
         """Message sent when selection is confirmed."""
@@ -71,9 +78,13 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
             yield Button("Quit", id="quit", variant="error")
         yield Footer()
 
+    # async def on_mount(self) -> None:
+    #     # Focus the tree for keyboard navigation
+    #     self.query_one(Tree).focus()
     async def on_mount(self) -> None:
-        # Focus the tree for keyboard navigation
-        self.query_one(Tree).focus()
+        tree = self.query_one(Tree)
+        tree.focus()
+        tree.root.expand()   # show top-level entries immediately
 
     async def on_tree_node_expanded(self, event: Tree.NodeExpanded) -> None:
         """Lazy-load children on expand."""
@@ -142,8 +153,11 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
     async def action_toggle(self) -> None:
         tree = self.query_one(Tree)
         node = tree.cursor_node
-        self._toggle_recursively(node, node.data.path not in self.selected_paths)  # type: ignore
+        if not node or node.data is None:
+            return  # don't toggle the synthetic root
+        self._toggle_recursively(node, node.data.path not in self.selected_paths)
         tree.refresh(layout=True)
+
 
     async def action_confirm(self) -> None:
         """Gather selected nodes, post message, and exit."""
@@ -161,3 +175,29 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
 
     async def action_quit(self) -> None:
         self.exit()
+
+    async def action_expand_or_child(self) -> None:
+        tree = self.query_one(Tree)
+        node = tree.cursor_node
+        if not node:
+            return
+        # If this row can expand and is currently collapsed, expand it (works for root and folders)
+        if node.allow_expand and not node.is_expanded:
+            node.expand()                  # sync
+            tree.refresh(layout=True)
+            return
+        # Already expanded: move into first child if any
+        if node.children:
+            tree.select_node(node.children[0])
+
+    async def action_collapse_or_parent(self) -> None:
+        tree = self.query_one(Tree)
+        node = tree.cursor_node
+        if not node:
+            return
+        if node.is_expanded:
+            node.collapse()                # sync
+            tree.refresh(layout=True)
+            return
+        if node.parent:
+            tree.select_node(node.parent)

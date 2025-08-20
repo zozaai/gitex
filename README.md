@@ -17,7 +17,7 @@
 - [x] Select files/directories to include
 - [ ] Filter files by extensions
 - [x] Generate formatted text file
-- [ ] Copy text to clipboard
+- [x] Copy text to clipboard
 - [ ] Download generated text
 - [x] Support for private repositories
 - [ ] Download zip of selected files
@@ -25,6 +25,7 @@
 - [x] make into pypi package
 
 ## ✨ Features
+
 
 ### 📚 Docstring Extraction
 Extract and format docstrings and function/class signatures from Python files, inspired by Sphinx. Perfect for providing high-level context to LLMs without implementation noise.
@@ -45,11 +46,28 @@ Analyze and visualize code architecture, dependencies, and relationships in your
 - 🔄 **Function call relationships** - Which functions call which other functions
 - 📊 **Summary statistics** - Overview of codebase complexity and external dependencies
 
+=======
+- **Docstring Extraction**: Extract and format docstrings and function/class signatures from Python files, inspired by Sphinx. This is perfect for providing high-level context to LLMs without the noise of implementation details.
+  - Extract from all Python files: `gitex . --extract-docstrings`
+  - Extract from a specific class or function: `gitex . --extract-docstrings gitex.renderer.Renderer`
+- **Clipboard (Linux)**: Copy the rendered output directly to your clipboard using `--copy`.  
+  Tries `wl-copy` (Wayland) → `xclip` (X11) → `xsel` (X11).
 
 
 ## 📥 Installation
 ```bash
 $ pip install gitex
+```
+
+## 📋 Clipboard support (Linux)
+#### Ubuntu/Debian
+```bash
+# Wayland (recommended):
+sudo apt install -y wl-clipboard
+# X11 alternatives:
+sudo apt install -y xclip
+# or
+sudo apt install -y xsel
 ```
 
 
@@ -59,7 +77,9 @@ $ gitex --help
 $ gitex .             # current repository
 $ gitex path/to/repo  # any repo path
 $ gitex url           # repo url
-...
+$ gitex -i /path/to/repo > path/to/output.txt  # redirect to text file
+$ gitex -c            # also copy output to clipboard (Linux)
+$ gitex -ic           # also copy output to clipboard (Linux) in interactive mode
 ```
 
 
