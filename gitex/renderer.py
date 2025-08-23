@@ -25,7 +25,8 @@ class Renderer:
     def _format_node_header(self, node: FileNode) -> str:
         """Format the header line for a root node."""
         suffix = "/" if node.node_type == "directory" else ""
-        return f"{node.name}{suffix}"
+        error_indicator = " [Permission Denied]" if node.metadata.get('permission_denied') else ""
+        return f"{node.name}{suffix}{error_indicator}"
 
     def _format_children(self, nodes: List[FileNode], prefix: str) -> List[str]:
         """Recursively format child nodes with ASCII connectors."""
@@ -35,7 +36,11 @@ class Renderer:
             is_last = (index == count - 1)
             connector = "└── " if is_last else "├── "
             suffix = "/" if node.node_type == "directory" else ""
-            formatted.append(f"{prefix}{connector}{node.name}{suffix}")
+            error_indicator = ""
+            if node.metadata.get('permission_denied'):
+                error_indicator = " [Permission Denied]"
+                
+            formatted.append(f"{prefix}{connector}{node.name}{suffix}{error_indicator}")
 
             if node.children:
                 next_prefix = prefix + ("    " if is_last else "│   ")

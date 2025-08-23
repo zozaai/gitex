@@ -47,21 +47,25 @@ class DefaultPicker(Picker):
         name = os.path.basename(path) or path
         is_dir = os.path.isdir(path)
         children = None
+        metadata = {}
         if is_dir:
             try:
                 entries = sorted(os.listdir(path))
+                children = []
+                for entry in entries:
+                    if self._should_skip(entry, root_path, parent_path=path):
+                        continue
+                    children.append(self._walk(os.path.join(path, entry), root_path))
             except PermissionError:
-                entries = []
-            children = []
-            for entry in entries:
-                if self._should_skip(entry, root_path, parent_path=path):
-                    continue
-                children.append(self._walk(os.path.join(path, entry), root_path))
+                children = []
+                metadata['permission_denied'] = True
+                metadata['error'] = 'Permission denied - cannot read directory contents'
         return FileNode(
             name=name,
             path=path,
             node_type="directory" if is_dir else "file",
-            children=children
+            children=children,
+            metadata=metadata
         )
 
     def _should_skip(self, name: str, root_path: str, parent_path: Optional[str] = None) -> bool:
