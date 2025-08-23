@@ -57,13 +57,13 @@ def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, i
     - Map dependencies and relationships between code components
     - Interactive file selection
     - Gitignore-aware filtering
-    Renders a repository's file tree and optional file contents for LLM prompts.
     """
     root = Path(path).resolve()
+    out_parts = []
 
     # Choose picker strategy
     if interactive:
-        picker = TextualPicker(ignore_hidden=True, respect_gitignore=True)  # <-- updated
+        picker = TextualPicker(ignore_hidden=True, respect_gitignore=True)
     else:
         picker = DefaultPicker(ignore_hidden=True, respect_gitignore=True)
 
@@ -71,29 +71,25 @@ def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, i
     raw_nodes = picker.pick(str(root))
 
     # Apply exclusion filters
-# After line where you get filtered nodes from picker
     nodes = _filter_nodes(raw_nodes)
 
-    # Add this before the renderer initialization:
-    if not no_files:
-        # Use the filtered nodes for rendering
-        renderer = Renderer(nodes)
-        
-        if extract_symbol:
-            out_parts.append("\n\n### Extracted Docstrings and Signatures ###\n")
-            symbol_target = None if extract_symbol == "*" else extract_symbol
-            out_parts.append(renderer.render_docstrings(base_dir or str(root), symbol_target, include_empty_classes))
-        else:
-            out_parts.append("\n\n### File Contents ###\n")
-            out_parts.append(renderer.render_files(base_dir or str(root)))
+    print("=== Selected files ===")
+    def show_files(nodes):
+        for node in nodes:
+            if node.node_type == "file":
+                print(f"FILE: {node.name}")
+            if node.children:
+                show_files(node.children)
+    show_files(nodes)
+    print("===================")
 
-    # Render
+    # Always render tree
     renderer = Renderer(nodes)
-    out_parts = []
+    out_parts.append(renderer.render_tree())
 
     # Handle dependency mapping (works independently of --no-files)
     if dependency_focus:
-        click.echo("\n\n### Dependency & Relationship Map ###\n")
+        out_parts.append("\n\n### Dependency & Relationship Map ###\n")
         
         # Get Python files from the selected nodes
         python_files = []
@@ -113,10 +109,9 @@ def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, i
         # Format and display results
         focus_value = None if dependency_focus == "all" else dependency_focus
         formatted_output = format_dependency_analysis(analysis, focus_value)
-        click.echo(formatted_output)
+        out_parts.append(formatted_output)
     
     elif not no_files:
-
         if extract_symbol:
             out_parts.append("\n\n### Extracted Docstrings and Signatures ###\n")
             symbol_target = None if extract_symbol == "*" else extract_symbol
@@ -133,7 +128,7 @@ def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, i
         if ok:
             click.secho("[Copied to clipboard]", err=True)
         else:
-            click.secho("[Failed to copy to clipboard — install wl-clipboard or xclip or xsel]", fg="yellow", err=True)
+            click.secho("[Failed to copy to clipboard – install wl-clipboard or xclip or xsel]", fg="yellow", err=True)
 
 
 if __name__ == "__main__":
