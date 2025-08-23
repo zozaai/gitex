@@ -75,6 +75,7 @@ def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, i
 
     # Render
     renderer = Renderer(nodes)
+    out_parts = []
 
     # Handle dependency mapping (works independently of --no-files)
     if dependency_focus:
