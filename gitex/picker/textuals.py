@@ -137,11 +137,20 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
             self._update_parent_label(node.parent)
 
     async def on_key(self, event: events.Key) -> None:
-        """Handle key presses: space to toggle, enter to confirm, q to quit."""
         tree = self.query_one(Tree)
         node = tree.cursor_node
+        
         if event.key == "space" and node and node.data:
-            await self.action_toggle()
+            # If it's a directory that can be expanded/collapsed, do that instead of selecting
+            if node.allow_expand:
+                if node.is_expanded:
+                    node.collapse()
+                else:
+                    node.expand()
+                tree.refresh(layout=True)
+            else:
+                # It's a file, so toggle selection
+                await self.action_toggle()
             event.stop()
         elif event.key == "enter":
             await self.action_confirm()
