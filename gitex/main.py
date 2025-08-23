@@ -46,7 +46,7 @@ def _filter_nodes(nodes):
 @click.option("--map-dependencies", "dependency_focus",
               help="Analyze and map code dependencies and relationships. Options: 'imports', 'inheritance', 'calls', or omit for all.",
               metavar="FOCUS", default=None, is_flag=False, flag_value="all")
-def cli(path, interactive, no_files, base_dir, extract_symbol, include_empty_classes, dependency_focus):
+def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, include_empty_classes, dependency_focus):
     """
     Renders a repository's file tree and optional file contents for LLM prompts.
 
