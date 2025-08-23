@@ -71,7 +71,21 @@ def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, i
     raw_nodes = picker.pick(str(root))
 
     # Apply exclusion filters
+# After line where you get filtered nodes from picker
     nodes = _filter_nodes(raw_nodes)
+
+    # Add this before the renderer initialization:
+    if not no_files:
+        # Use the filtered nodes for rendering
+        renderer = Renderer(nodes)
+        
+        if extract_symbol:
+            out_parts.append("\n\n### Extracted Docstrings and Signatures ###\n")
+            symbol_target = None if extract_symbol == "*" else extract_symbol
+            out_parts.append(renderer.render_docstrings(base_dir or str(root), symbol_target, include_empty_classes))
+        else:
+            out_parts.append("\n\n### File Contents ###\n")
+            out_parts.append(renderer.render_files(base_dir or str(root)))
 
     # Render
     renderer = Renderer(nodes)
