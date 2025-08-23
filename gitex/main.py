@@ -59,6 +59,8 @@ def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, i
     - Gitignore-aware filtering
     Renders a repository's file tree and optional file contents for LLM prompts.
     """
+    out_parts = []
+
     root = Path(path).resolve()
 
     # Choose picker strategy
