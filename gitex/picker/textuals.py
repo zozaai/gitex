@@ -117,41 +117,51 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
         if node.parent and node.parent.data:
             self._update_parent_label(node.parent)
 
+
     def _update_parent_label(self, node: TreeNode) -> None:
-        """Update a parent node's label based on its children's selection state."""
-        file_node: FileNode = node.data  # type: ignore
-        child_paths = [c.data.path for c in node.children if c.data]
-        selected = [p for p in child_paths if p in self.selected_paths]
-        if child_paths and len(selected) == len(child_paths):
-            mark = "[x]"
-        elif selected:
-            mark = "[-]"
-        else:
-            mark = "[ ]"
-        label = f"{mark} {file_node.name}"
+        """Update a parent node's label based on selection state."""
+        if not node.data:
+            return
+
+        file_node: FileNode = node.data
+        
+        # If the parent itself is explicitly selected, mark it Green [x]
         if file_node.path in self.selected_paths:
-            node.set_label(Text(label, style="bold green"))
+            mark = "[x]"
+            style = "bold green"
         else:
-            node.set_label(Text(label))
-        if node.parent and node.parent.data:
+            # Check children to see if we need a partial state [-]
+            # We can only check UI children easily here
+            child_paths = [c.data.path for c in node.children if c.data]
+            selected_children = [p for p in child_paths if p in self.selected_paths]
+            
+            if child_paths and len(selected_children) == len(child_paths):
+                # All UI children selected (and parent not in set? shouldn't happen often if logic holds)
+                mark = "[x]"
+                style = "bold green"
+            elif selected_children:
+                # Some children selected
+                mark = "[-]"
+                style = "" # Default color for partial
+            else:
+                # No children selected
+                mark = "[ ]"
+                style = ""
+
+        label = f"{mark} {file_node.name}"
+        node.set_label(Text(label, style=style))
+        
+        if node.parent:
             self._update_parent_label(node.parent)
 
     async def on_key(self, event: events.Key) -> None:
-        """Handle key presses: space to expand/toggle, enter to confirm, q to quit."""
-        tree = self.query_one(Tree)
-        node = tree.cursor_node
+        """Handle key presses: space to toggle, enter to confirm, q to quit."""
         
-        if event.key == "space" and node and node.data:
-            # If it's a directory that can be expanded/collapsed, do that instead of selecting
-            if node.allow_expand:
-                if node.is_expanded:
-                    node.collapse()
-                else:
-                    node.expand()
-                tree.refresh(layout=True)
-            else:
-                # It's a file, so toggle selection
-                await self.action_toggle()
+        # Note: Left/Right arrows are handled by BINDINGS automatically
+        
+        if event.key == "space":
+            # Pure toggle, no expansion
+            await self.action_toggle()
             event.stop()
         elif event.key == "enter":
             await self.action_confirm()
@@ -159,20 +169,6 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
         elif event.key == "q":
             await self.action_quit()
             event.stop()
-        elif event.key == "enter":
-            await self.action_confirm()
-            event.stop()
-        elif event.key == "q":
-            await self.action_quit()
-            event.stop()
-
-    async def action_toggle(self) -> None:
-        tree = self.query_one(Tree)
-        node = tree.cursor_node
-        if not node or node.data is None:
-            return  # don't toggle the synthetic root
-        self._toggle_recursively(node, node.data.path not in self.selected_paths)
-        tree.refresh(layout=True)
 
 
     async def action_confirm(self) -> None:
@@ -217,3 +213,48 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
             return
         if node.parent:
             tree.select_node(node.parent)
+
+
+
+    async def action_toggle(self) -> None:
+        tree = self.query_one(Tree)
+        node = tree.cursor_node
+        if not node or node.data is None:
+            return
+
+        # 1. Determine target state (if currently selected, deselect, etc.)
+        file_node: FileNode = node.data
+        is_selecting = file_node.path not in self.selected_paths
+
+        # 2. Update the logical set (The Data)
+        # We walk the FileNode data structure, NOT the UI Tree
+        self._set_subtree_selection(file_node, is_selecting)
+
+        # 3. Update the visuals (The UI)
+        # We only update UI nodes that actually exist (are expanded/visible)
+        self._refresh_subtree_visuals(node)
+        
+        # 4. Update parent labels (to handle partial states up the tree)
+        if node.parent:
+            self._update_parent_label(node.parent)
+
+    def _set_subtree_selection(self, file_node: FileNode, select: bool) -> None:
+        """Recursively update selected_paths using the Data Model (FileNode)."""
+        if select:
+            self.selected_paths.add(file_node.path)
+        else:
+            self.selected_paths.discard(file_node.path)
+        
+        # Recurse through data children even if UI node is collapsed
+        if file_node.children:
+            for child in file_node.children:
+                self._set_subtree_selection(child, select)
+
+    def _refresh_subtree_visuals(self, tree_node: TreeNode) -> None:
+        """Recursively update labels for existing UI TreeNodes."""
+        if tree_node.data:
+            tree_node.set_label(self._format_label(tree_node.data))
+        
+        # Only recurse if the UI node has children (is expanded)
+        for child in tree_node.children:
+            self._refresh_subtree_visuals(child)
