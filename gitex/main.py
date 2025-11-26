@@ -11,7 +11,7 @@ from gitex.dependency_mapper import DependencyMapper, format_dependency_analysis
 from gitex.utils import copy_to_clipboard
 
 # Patterns to exclude from rendering
-EXCLUDE_PATTERNS = [".git", ".gitignore", "*.egg-info", "__pycache__"]
+EXCLUDE_PATTERNS = [".git", "*.egg-info", "__pycache__"]
 
 
 def _filter_nodes(nodes):
@@ -47,9 +47,10 @@ def _filter_nodes(nodes):
               help="Analyze and map code dependencies and relationships. Options: 'imports', 'inheritance', 'calls', or omit for all.",
               metavar="FOCUS", default=None, is_flag=False, flag_value="all")
 @click.option("-g", "--ignore-gitignore", is_flag=True, help="Include files normally ignored by .gitignore.")
+@click.option("-a", "--all", "show_hidden", is_flag=True, help="Include hidden files (files starting with .).")
 
 
-def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, include_empty_classes, dependency_focus, ignore_gitignore):
+def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, include_empty_classes, dependency_focus, ignore_gitignore, show_hidden):
     """
     Renders a repository's file tree and optional file contents for LLM prompts.
 
@@ -66,30 +67,20 @@ def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, i
 
     # Choose picker strategy
     respect_gitignore = not ignore_gitignore
+
+    # If -a is passed, show_hidden is True, so ignore_hidden should be False
+    ignore_hidden = not show_hidden
+
     if interactive:
-        picker = TextualPicker(ignore_hidden=True, respect_gitignore=respect_gitignore)
+        picker = TextualPicker(ignore_hidden=ignore_hidden, respect_gitignore=respect_gitignore)
     else:
-        picker = DefaultPicker(ignore_hidden=True, respect_gitignore=respect_gitignore)
+        picker = DefaultPicker(ignore_hidden=ignore_hidden, respect_gitignore=respect_gitignore)
 
     # Build FileNode hierarchy
     raw_nodes = picker.pick(str(root))
 
     # Apply exclusion filters
     nodes = _filter_nodes(raw_nodes)
-
-    # DEBUG - Show selected files (remove after testing)
-    print("=== Selected files after picker ===")
-    def show_files(nodes, indent=0):
-        for node in nodes:
-            prefix = "  " * indent
-            if node.node_type == "file":
-                print(f"{prefix}FILE: {node.name} -> {node.path}")
-            else:
-                print(f"{prefix}DIR: {node.name}/")
-            if node.children:
-                show_files(node.children, indent + 1)
-    show_files(nodes)
-    print("=====================================")
 
     # Always render tree first
     renderer = Renderer(nodes)
