@@ -46,7 +46,10 @@ def _filter_nodes(nodes):
 @click.option("--map-dependencies", "dependency_focus",
               help="Analyze and map code dependencies and relationships. Options: 'imports', 'inheritance', 'calls', or omit for all.",
               metavar="FOCUS", default=None, is_flag=False, flag_value="all")
-def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, include_empty_classes, dependency_focus):
+@click.option("-g", "--ignore-gitignore", is_flag=True, help="Include files normally ignored by .gitignore.")
+
+
+def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, include_empty_classes, dependency_focus, ignore_gitignore):
     """
     Renders a repository's file tree and optional file contents for LLM prompts.
 
@@ -62,10 +65,11 @@ def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, i
     out_parts = []
 
     # Choose picker strategy
+    respect_gitignore = not ignore_gitignore
     if interactive:
-        picker = TextualPicker(ignore_hidden=True, respect_gitignore=True)
+        picker = TextualPicker(ignore_hidden=True, respect_gitignore=respect_gitignore)
     else:
-        picker = DefaultPicker(ignore_hidden=True, respect_gitignore=True)
+        picker = DefaultPicker(ignore_hidden=True, respect_gitignore=respect_gitignore)
 
     # Build FileNode hierarchy
     raw_nodes = picker.pick(str(root))
