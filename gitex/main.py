@@ -121,7 +121,6 @@ def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, i
             out_parts.append(renderer.render_files(base_dir or str(root)))
 
     final_output = "".join(out_parts)
-    click.echo(final_output)
 
     if copy_clipboard:
         ok = copy_to_clipboard(final_output)
@@ -129,7 +128,9 @@ def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, i
             click.secho("[Copied to clipboard]", err=True)
         else:
             click.secho("[Failed to copy to clipboard – install wl-clipboard or xclip or xsel]", fg="yellow", err=True)
-
+            click.echo(final_output)
+    else:
+        click.echo(final_output)
 
 if __name__ == "__main__":
     cli()
