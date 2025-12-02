@@ -2,6 +2,8 @@
 from fnmatch import fnmatch
 from pathlib import Path
 import click
+import git
+from git.exc import InvalidGitRepositoryError
 
 from gitex.picker.base import DefaultPicker
 from gitex.picker.textuals import TextualPicker
@@ -48,9 +50,10 @@ def _filter_nodes(nodes):
               metavar="FOCUS", default=None, is_flag=False, flag_value="all")
 @click.option("-g", "--ignore-gitignore", is_flag=True, help="Include files normally ignored by .gitignore.")
 @click.option("-a", "--all", "show_hidden", is_flag=True, help="Include hidden files (files starting with .).")
+@click.option("--force", is_flag=True, help="Force execution on non-git directories (caution: may be slow).")
 
 
-def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, include_empty_classes, dependency_focus, ignore_gitignore, show_hidden):
+def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, include_empty_classes, dependency_focus, ignore_gitignore, show_hidden, force):
     """
     Renders a repository's file tree and optional file contents for LLM prompts.
 
@@ -63,6 +66,18 @@ def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, i
     - Gitignore-aware filtering
     """
     root = Path(path).resolve()
+    
+    # Safety Check: Ensure we are in a git repository to prevent accidental massive scans (like ~)
+    # The --force flag allows bypassing this check for intentional non-git directory scanning.
+    try:
+        git.Repo(str(root), search_parent_directories=True)
+    except InvalidGitRepositoryError:
+        if not force:
+            click.secho(f"⚠️  Skipping: '{root}' is not a valid Git repository.", fg="yellow", err=True)
+            click.secho("   gitex defaults to Git repositories to prevent scanning huge directories (like $HOME).", err=True)
+            click.secho("   To force scanning this directory anyway, use: gitex --force ...", dim=True, err=True)
+            return
+
     out_parts = []
 
     # Choose picker strategy
