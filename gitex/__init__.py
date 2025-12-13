@@ -1,3 +1,1 @@
-# from jetvoice.stt import transcribe
-# from jetvoice.llm import ask_llm
-# from jetvoice.tts import speak
+__version__ = "0.2.6"
