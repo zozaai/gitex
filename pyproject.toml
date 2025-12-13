@@ -4,3 +4,9 @@ requires = [
   "wheel"
 ]
 build-backend = "setuptools.build_meta"
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+]
