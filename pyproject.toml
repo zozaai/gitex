@@ -1,9 +1,14 @@
 [build-system]
-requires = [
-  "setuptools>=61.0",
-  "wheel"
-]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "gitex"
+dynamic = ["version"]
+requires-python = ">=3.11"
+
+[tool.setuptools.dynamic]
+version = {attr = "gitex.__version__"}
 
 [project.optional-dependencies]
 test = [
