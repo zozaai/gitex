@@ -15,7 +15,8 @@ class TestGitExCLI(unittest.TestCase):
         This serves as our 'sample asset directory'.
         """
         self.test_dir = tempfile.mkdtemp()
-        self.runner = CliRunner()
+        # Initialize CliRunner with mix_stderr=False to separate stdout and stderr
+        self.runner = CliRunner(mix_stderr=False)
 
     def tearDown(self):
         """Clean up the temporary directory after each test."""
@@ -37,8 +38,8 @@ class TestGitExCLI(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertIn("Skipping", result.stderr)
         self.assertIn("not a valid Git repository", result.stderr)
-        # Should NOT output the file content
-        self.assertNotIn("content inside non-git dir", result.output)
+        # Should NOT output the file content to stdout
+        self.assertNotIn("content inside non-git dir", result.stdout)
 
     def test_non_git_repo_force(self):
         """
@@ -52,11 +53,27 @@ class TestGitExCLI(unittest.TestCase):
         result = self.runner.invoke(cli, [self.test_dir, "--force"])
         
         self.assertEqual(result.exit_code, 0)
-        # Warning should not appear (or be overridden by success output)
+        # Warning should not appear in stderr
         self.assertNotIn("Skipping", result.stderr)
-        # Should see the file content
-        self.assertIn("forced_file.txt", result.output)
-        self.assertIn("forced content", result.output)
+        # Should see the file content in stdout
+        self.assertIn("forced_file.txt", result.stdout)
+        self.assertIn("forced content", result.stdout)
+
+    def test_ignore_gitignore_does_not_affect_repo_check(self):
+        """
+        Test that --ignore-gitignore flag alone does not bypass the 
+        repo safety check (unless --force is also used).
+        """
+        # Non-git dir
+        p = Path(self.test_dir) / "ignored.txt"
+        p.write_text("secret")
+        
+        # Run with -g but NO --force
+        result = self.runner.invoke(cli, [self.test_dir, "-g"])
+        
+        # It should still skip because it's not a git repo
+        self.assertIn("Skipping", result.stderr)
+        self.assertNotIn("secret", result.stdout)
 
     def test_valid_git_repo(self):
         """
@@ -74,24 +91,12 @@ class TestGitExCLI(unittest.TestCase):
         
         self.assertEqual(result.exit_code, 0)
         self.assertNotIn("Skipping", result.stderr)
-        self.assertIn("repo_file.py", result.output)
-        self.assertIn("print('hello git')", result.output)
-
-    def test_ignore_gitignore_does_not_affect_repo_check(self):
-        """
-        Test that --ignore-gitignore flag alone does not bypass the 
-        repo safety check (unless --force is also used).
-        """
-        # Non-git dir
-        p = Path(self.test_dir) / "ignored.txt"
-        p.write_text("secret")
+        self.assertIn("repo_file.py", result.stdout)
         
-        # Run with -g but NO --force
-        result = self.runner.invoke(cli, [self.test_dir, "-g"])
-        
-        # It should still skip because it's not a git repo
-        self.assertIn("Skipping", result.stderr)
-        self.assertNotIn("secret", result.output)
+        # Verify fenced code blocks
+        self.assertIn("```python", result.stdout)
+        self.assertIn("print('hello git')", result.stdout)
+        self.assertIn("```", result.stdout)
 
 if __name__ == '__main__':
     unittest.main()

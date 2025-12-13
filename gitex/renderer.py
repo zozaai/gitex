@@ -3,6 +3,8 @@ from gitex.models import FileNode
 from gitex.docstring_extractor import extract_docstrings
 from pathlib import Path
 import os
+import re
+from pathlib import Path
 
 class Renderer:
     """
@@ -43,14 +45,22 @@ class Renderer:
         return formatted
 
     def render_files(self, base_dir: Optional[str] = None) -> str:
-        """Return all file contents, each block prefixed by its full or relative path."""
         file_nodes = self._collect_files(self.nodes)
         blocks = []
 
         for node in file_nodes:
             path_display = self._relative_path(node.path, base_dir)
             content = self._read_file(node.path)
-            blocks.append(f"# {path_display}\n{content}")
+
+            lang = _detect_lang(node.path)
+            open_fence, close_fence = _build_fence(content, lang)
+
+            blocks.append(
+                f"# {path_display}\n"
+                f"{open_fence}\n"
+                f"{content}\n"
+                f"{close_fence}"
+            )
 
         return "\n\n".join(blocks)
 
@@ -114,3 +124,51 @@ class Renderer:
                 return f.read()
         except Exception as e:
             return f"<Error reading file: {e}>"
+
+
+def _detect_lang(path: str) -> str:
+    ext = Path(path).suffix.lower()
+    mapping = {
+        ".py": "python",
+        ".sh": "bash",
+        ".bash": "bash",
+        ".yml": "yaml",
+        ".yaml": "yaml",
+        ".json": "json",
+        ".toml": "toml",
+        ".md": "markdown",
+        ".txt": "text",
+        ".cpp": "cpp",
+        ".c": "c",
+        ".h": "c",
+        ".hpp": "cpp",
+        ".js": "javascript",
+        ".ts": "typescript",
+        ".html": "html",
+        ".css": "css",
+    }
+
+    name = Path(path).name
+    if name == "Dockerfile" or name.lower().startswith("dockerfile."):
+        return "dockerfile"
+    if name == "Makefile":
+        return "makefile"
+
+    return mapping.get(ext, "")
+
+
+
+def _build_fence(content: str, lang: str) -> tuple[str, str]:
+    """
+    Build a safe Markdown code fence.
+    Always uses triple backticks or more.
+    """
+    runs = re.findall(r"`+", content)
+    max_ticks = max((len(r) for r in runs), default=0)
+
+    fence_len = max(3, max_ticks + 1)   # ✅ enforce minimum triple backticks
+    fence = "`" * fence_len
+
+    opening = f"{fence}{lang}".rstrip()
+    closing = fence
+    return opening, closing

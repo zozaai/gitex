@@ -5,7 +5,7 @@ for our project
 
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional, Dict, Any
 from enum import Enum
 
@@ -14,6 +14,8 @@ class NodeType(str, Enum):
     DIRECTORY = "directory"
 
 class FileNode(BaseModel):
+    model_config = ConfigDict(use_enum_values=True)
+
     name: str
     path: str
     node_type: NodeType
@@ -21,6 +23,3 @@ class FileNode(BaseModel):
     is_selected: bool = True
     children: Optional[List['FileNode']] = None
     metadata: Dict[str, Any] = {}
-    
-    class Config:
-        use_enum_values = True
