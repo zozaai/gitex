@@ -11,7 +11,8 @@
 
 🛠️ Terminal tool to prep your 🧠 codebase (whole or partial) for LLMs — clean, compress, and convert it into prompt-ready text! 🚀📦
 
-[![CI](https://github.com/zozaai/gitex/actions/workflows/ci.yml/badge.svg)](https://github.com/zozaai/gitex/actions/workflows/ci.yml)
+[![CI](https://github.com/zozaai/gitex/actions/workflows/ci.yml/badge.svg)](https://github.com/zozaai/gitex/actions/workflows/ci.yml) [![codecov](https://codecov.io/gh/zozaai/gitex/branch/main/graph/badge.svg)](https://codecov.io/gh/zozaai/gitex)
+
 
 
 ## 📝 To-Do
