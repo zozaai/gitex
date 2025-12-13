@@ -10,8 +10,8 @@ from gitex.main import cli
 
 @pytest.fixture
 def runner():
-    # catch_exceptions=False → pytest shows real traceback on failure
-    return CliRunner(mix_stderr=False)
+    # Click >= 8.3: stdout/stderr are always separated; no mix_stderr kwarg exists
+    return CliRunner()
 
 
 @pytest.fixture
@@ -63,7 +63,7 @@ def repo_dir(tmp_path: Path):
     write(
         "main.cpp",
         "#include <iostream>\n"
-        "int main(){ std::cout << \"hi\"; }\n",
+        'int main(){ std::cout << "hi"; }\n',
     )
 
     write(
@@ -117,7 +117,7 @@ def test_all_files_use_triple_backticks_or_more(runner, repo_dir):
     ]
 
     for fname in files:
-        block = extract_block(result.output, fname)
+        block = extract_block(result.stdout, fname)
         lines = block.splitlines()
 
         assert len(lines) >= 2, f"Block too short for {fname}"
@@ -141,7 +141,7 @@ def test_nested_code_block_uses_longer_outer_fence(runner, repo_dir):
     result = run_gitex(runner, repo_dir)
     assert result.exit_code == 0
 
-    block = extract_block(result.output, "file_with_nested_code_block.py")
+    block = extract_block(result.stdout, "file_with_nested_code_block.py")
     first = block.splitlines()[0]
 
     outer_len = len(re.match(r"^`+", first).group(0))
@@ -166,6 +166,6 @@ def test_language_tags_for_known_files(runner, repo_dir):
     }
 
     for fname, lang in expected.items():
-        block = extract_block(result.output, fname)
+        block = extract_block(result.stdout, fname)
         first = block.splitlines()[0]
         assert first.endswith(lang), f"{fname} expected lang '{lang}', got {first!r}"
