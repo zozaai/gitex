@@ -5,13 +5,34 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "gitex"
 dynamic = ["version"]
+description = "Terminal tool to prep codebases for LLMs"
+readme = "README.md"
 requires-python = ">=3.11"
+authors = [
+    {name = "zozaai", email = "info@zozaai.com"}
+]
+license = {text = "MIT"}
+dependencies = [
+    "click>=8.3",
+    "textual>=5.2.0",
+    "questionary==2.1.0",
+    "pathspec>=0.10.1,<1.0",
+    "pydantic",
+    "GitPython",
+]
 
-[tool.setuptools.dynamic]
-version = {attr = "gitex.__version__"}
+[project.scripts]
+gitex = "gitex.main:cli"
 
 [project.optional-dependencies]
 test = [
   "pytest>=8.0",
   "pytest-cov>=5.0",
 ]
+
+[tool.setuptools.dynamic]
+version = {attr = "gitex.__version__"}
+
+[tool.setuptools.packages.find]
+# Helper to automatically find packages (equivalent to packages = find: in setup.cfg)
+where = ["."]
