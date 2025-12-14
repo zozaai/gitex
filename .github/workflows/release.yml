@@ -12,15 +12,19 @@ on:
 
 jobs:
   test:
-    name: Run Tests
+    name: Test on Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]  # Define the versions here
+    
     steps:
       - uses: actions/checkout@v4
       
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ["3.11", "3.12", "3.13"]
+          python-version: ${{ matrix.python-version }}  # Use the matrix variable here
 
       - name: Install dependencies
         run: |
@@ -33,7 +37,7 @@ jobs:
 
   release:
     name: Build and Publish
-    needs: test  # Only publish if tests pass
+    needs: test  # Only publish if ALL test jobs pass
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -44,7 +48,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.11"  # Just need one version to build the package
 
       - name: Install build tools
         run: |
@@ -60,6 +64,4 @@ jobs:
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
-          # Use this to prevent the workflow from failing if the 
-          # version wasn't bumped (it will just skip the upload):
           skip-existing: true
