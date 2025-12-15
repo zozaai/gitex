@@ -1,4 +1,4 @@
-name: Publish to PyPI
+name: Publish to PyPI and GitHub
 
 on:
   push:
@@ -12,11 +12,8 @@ on:
 
 jobs:
   test:
-    # 1. We name the job dynamically so you can see which version is running
     name: Test on Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
-    
-    # 2. This strategy block creates 3 parallel jobs
     strategy:
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
@@ -27,7 +24,6 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          # 3. We use the variable from the matrix here
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
@@ -40,11 +36,15 @@ jobs:
           pytest tests/
 
   release:
-    name: Build and Publish
-    needs: test  # This waits for ALL 3 python versions to pass
+    name: Build and Release
+    needs: test
+    # Only run this job if we are on the main branch
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    
+    # ⚠️ IMPORTANT: We need write permission to create a GitHub Release
     permissions:
-      contents: read
+      contents: write 
     
     steps:
       - uses: actions/checkout@v4
@@ -52,20 +52,42 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11" # We only need one version to build
+          python-version: "3.11"
 
       - name: Install build tools
         run: |
           python -m pip install --upgrade pip
           pip install build
-          
+
       - name: Build package
         run: |
           python -m build
-          
+
+      # 1. Upload to PyPI
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
           skip-existing: true
+
+      # 2. Extract Version for the Tag
+      - name: Get version from __init__.py
+        id: get_version
+        run: |
+          # This extracts the string inside __version__ = "..."
+          VERSION=$(grep -oP '__version__\s*=\s*"\K[^"]+' gitex/__init__.py)
+          echo "Detected version: $VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      # 3. Create GitHub Release
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: Release v${{ env.VERSION }}
+          files: dist/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
