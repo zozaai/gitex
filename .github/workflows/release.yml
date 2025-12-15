@@ -2,13 +2,14 @@ name: Publish to PyPI
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - "gitex/**"
-      - "pyproject.toml"
-      - "README.md"
-      - "gitex/__init__.py"
+    branches: ["**"]
+    # branches:
+    #   - main
+    # paths:
+    #   - "gitex/**"
+    #   - "pyproject.toml"
+    #   - "README.md"
+    #   - "gitex/__init__.py"
 
 jobs:
   test:
