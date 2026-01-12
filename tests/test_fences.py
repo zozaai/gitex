@@ -10,8 +10,7 @@ from gitex.main import cli
 
 @pytest.fixture
 def runner():
-    # Click >= 8.3: stdout/stderr are always separated; no mix_stderr kwarg exists
-    return CliRunner()
+    return CliRunner(mix_stderr=False)
 
 
 @pytest.fixture

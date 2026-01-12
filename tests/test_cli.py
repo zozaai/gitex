@@ -17,8 +17,7 @@ class TestGitExCLI(unittest.TestCase):
         This serves as our 'sample asset directory'.
         """
         self.test_dir = tempfile.mkdtemp()
-        # Click >= 8.3: mix_stderr was removed; stdout/stderr are always separated
-        self.runner = CliRunner()
+        self.runner = CliRunner(mix_stderr=False)
 
     def tearDown(self):
         """Clean up the temporary directory after each test."""
