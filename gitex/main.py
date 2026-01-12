@@ -32,6 +32,7 @@ def _filter_nodes(nodes):
 
 @click.command()
 @click.argument("path", type=click.Path(exists=True), default='.')
+@click.version_option(version=None, message="%(prog)s version %(version)s")
 @click.option("-i", "--interactive", is_flag=True,
               help="Launch interactive picker to choose files")
 @click.option("--no-files", is_flag=True,
