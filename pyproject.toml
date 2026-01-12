@@ -7,7 +7,7 @@ name = "gitex"
 dynamic = ["version"]
 description = "Terminal tool to prep codebases for LLMs"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.9"
 authors = [
     {name = "zozaai", email = "info@zozaai.com"}
 ]

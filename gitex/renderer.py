@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from gitex.models import FileNode
 from gitex.docstring_extractor import extract_docstrings
 from pathlib import Path
@@ -158,7 +158,7 @@ def _detect_lang(path: str) -> str:
 
 
 
-def _build_fence(content: str, lang: str) -> tuple[str, str]:
+def _build_fence(content: str, lang: str) -> Tuple[str, str]:
     """
     Build a safe Markdown code fence.
     Always uses triple backticks or more.
