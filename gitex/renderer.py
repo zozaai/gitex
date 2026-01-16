@@ -1,9 +1,8 @@
+import os
+import re
 from typing import List, Optional, Tuple
 from gitex.models import FileNode
 from gitex.docstring_extractor import extract_docstrings
-from pathlib import Path
-import os
-import re
 from pathlib import Path
 
 class Renderer:
@@ -50,6 +49,11 @@ class Renderer:
 
         for node in file_nodes:
             path_display = self._relative_path(node.path, base_dir)
+
+            # Skip decoding/reading image files; just list them later
+            if _is_binary_file(node.path):
+                continue
+
             content = self._read_file(node.path)
 
             lang = _detect_lang(node.path)
@@ -124,6 +128,31 @@ class Renderer:
                 return f.read()
         except Exception as e:
             return f"<Error reading file: {e}>"
+
+
+def _is_binary_file(path: str) -> bool:
+    return Path(path).suffix.lower() in {
+        # images
+        ".png", ".jpg", ".jpeg", ".gif", ".webp",
+        ".bmp", ".tif", ".tiff", ".ico",
+
+        # documents
+        ".pdf",
+
+        # archives
+        ".zip", ".tar", ".gz", ".tgz", ".rar", ".7z",
+
+        # python / binaries
+        ".whl", ".egg", ".pyc",
+        ".so", ".dll", ".exe", ".dylib",
+
+        # media
+        ".mp4", ".mov", ".avi", ".mkv",
+        ".mp3", ".wav",
+
+        # office
+        ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+    }
 
 
 def _detect_lang(path: str) -> str:
