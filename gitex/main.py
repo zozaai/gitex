@@ -100,7 +100,9 @@ def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, i
 
     # Always render tree first
     renderer = Renderer(nodes)
-    out_parts.append(renderer.render_tree())
+
+    # Wrap the rendered tree in triple quotes
+    out_parts.append(f'"""\n{renderer.render_tree()}\n"""')
 
     # Handle dependency mapping (works independently of --no-files)
     if dependency_focus:

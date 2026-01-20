@@ -31,20 +31,16 @@ class DefaultPicker(Picker):
         if self.respect_gitignore:
             self._load_gitignore(root_path)
 
-        # Collect nodes
-        if os.path.isdir(root_path):
-            nodes = []
-            for entry in sorted(os.listdir(root_path)):
-                if self._should_skip(entry, root_path):
-                    continue
-                full = os.path.join(root_path, entry)
-                nodes.append(self._walk(full, root_path))
-            return nodes
-        else:
-            return [self._walk(root_path, root_path)]
-
+        # Return the root directory itself to preserve structure
+        return [self._walk(root_path, root_path)]
+    
     def _walk(self, path: str, root_path: str) -> FileNode:
-        name = os.path.basename(path) or path
+        # Use "." for the root node name to match standard tree output
+        if path == root_path:
+            name = "."
+        else:
+            name = os.path.basename(path) or path
+
         is_dir = os.path.isdir(path)
         children = None
         if is_dir:

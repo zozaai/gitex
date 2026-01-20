@@ -25,6 +25,8 @@ class Renderer:
 
     def _format_node_header(self, node: FileNode) -> str:
         """Format the header line for a root node."""
+        if node.name == ".":
+            return "."
         suffix = "/" if node.node_type == "directory" else ""
         return f"{node.name}{suffix}"
 
