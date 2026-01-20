@@ -69,22 +69,27 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        tree = Tree("Files to include", id="picker-tree")
-        # build only root level
-        for node in self.nodes:
-            tree.root.add(self._format_label(node), data=node, allow_expand=bool(node.children))
+        
+        # Start the tree directly with the root node name (which is "." based on your previous changes)
+        # We use the first node in self.nodes as the root
+        root_node = self.nodes[0]
+        tree = Tree(self._format_label(root_node), id="picker-tree", data=root_node)
+        
+        # Manually add the children of the root to the tree
+        if root_node.children:
+            for child in root_node.children:
+                tree.root.add(self._format_label(child), data=child, allow_expand=bool(child.children))
+        
         yield ScrollView(tree)
         with Horizontal():
             yield Button("Quit", id="quit", variant="error")
         yield Footer()
 
-    # async def on_mount(self) -> None:
-    #     # Focus the tree for keyboard navigation
-    #     self.query_one(Tree).focus()
     async def on_mount(self) -> None:
         tree = self.query_one(Tree)
         tree.focus()
-        tree.root.expand()   # show top-level entries immediately
+        # The root "." is now visible and focusable; it is expanded by default to show its contents
+        tree.root.expand()
 
     async def on_tree_node_expanded(self, event: Tree.NodeExpanded) -> None:
         """Lazy-load children on expand."""
@@ -172,19 +177,26 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
 
 
     async def action_confirm(self) -> None:
-        """Gather selected nodes, post message, and exit."""
-        def gather(nodes: List[FileNode]) -> List[FileNode]:
+        """Gather selected nodes while preserving hierarchy, then exit."""
+        def prune(nodes: List[FileNode]) -> List[FileNode]:
             out: List[FileNode] = []
             for n in nodes:
-                if n.path in self.selected_paths:
-                    out.append(n)
-                if n.children:
-                    out.extend(gather(n.children))
+                if n.node_type == "file":
+                    if n.path in self.selected_paths:
+                        out.append(n)
+                else:
+                    children = prune(n.children or [])
+                    # Include directory if it contains selected items
+                    if children or n.path in self.selected_paths:
+                        new_node = n.model_copy(deep=True)
+                        new_node.children = children
+                        out.append(new_node)
             return out
-        self.selected_nodes = gather(self.nodes)
+
+        self.selected_nodes = prune(self.nodes)
         self.post_message(self.Confirmed(list(self.selected_paths)))
         self.exit()
-
+    
     async def action_quit(self) -> None:
         self.exit()
 
