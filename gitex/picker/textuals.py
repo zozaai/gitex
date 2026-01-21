@@ -3,7 +3,7 @@ from gitex.models import FileNode
 from gitex.picker.base import Picker, DefaultPicker
 from textual.app import App, ComposeResult
 from textual.widgets import Tree, Button, Header, Footer
-from textual.scroll_view import ScrollView
+# from textual.scroll_view import ScrollView
 from textual.widgets.tree import TreeNode
 from textual.containers import Horizontal
 from textual.message import Message
@@ -25,23 +25,27 @@ class TextualPicker(Picker):
 
 class _PickerApp(App):  # pylint: disable=too-many-public-methods
     CSS = """
-    ScrollView {
+    #picker-tree {
         height: 1fr;
         width: 1fr;
-    }
-    #picker-tree {
         border: solid gray;
         padding: 1;
     }
-    /* this is the focused row highlight */
+
+    #actions {
+        height: auto;
+    }
+
     #picker-tree .cursor-line {
         background: blue;
-        color: white;      /* optional: make text pop on the blue bar */
+        color: white;
     }
+
     Button {
         margin: 1 2;
     }
     """
+
     # BINDINGS = [
     #     ("space", "toggle", "Toggle file or folder selection"),
     #     ("enter", "confirm", "Confirm selection"),
@@ -69,21 +73,21 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        
-        # Start the tree directly with the root node name (which is "." based on your previous changes)
-        # We use the first node in self.nodes as the root
+
         root_node = self.nodes[0]
         tree = Tree(self._format_label(root_node), id="picker-tree", data=root_node)
-        
-        # Manually add the children of the root to the tree
+
         if root_node.children:
             for child in root_node.children:
                 tree.root.add(self._format_label(child), data=child, allow_expand=bool(child.children))
-        
-        yield ScrollView(tree)
-        with Horizontal():
+
+        yield tree
+
+        with Horizontal(id="actions"):
             yield Button("Quit", id="quit", variant="error")
+
         yield Footer()
+
 
     async def on_mount(self) -> None:
         tree = self.query_one(Tree)
@@ -213,6 +217,9 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
         # Already expanded: move into first child if any
         if node.children:
             tree.select_node(node.children[0])
+        
+        # tree.scroll_to_node(node, animate=False)
+
 
     async def action_collapse_or_parent(self) -> None:
         tree = self.query_one(Tree)
@@ -270,3 +277,8 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
         # Only recurse if the UI node has children (is expanded)
         for child in tree_node.children:
             self._refresh_subtree_visuals(child)
+
+    async def on_tree_node_highlighted(self, event: Tree.NodeHighlighted) -> None:
+        """Keep the highlighted (cursor) node visible while navigating."""
+        tree = event.control  # the Tree that emitted the event
+        tree.scroll_to_node(event.node, animate=False)
