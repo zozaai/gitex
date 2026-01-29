@@ -30,7 +30,7 @@ def _filter_nodes(nodes):
     return filtered
 
 
-@click.command()
+@click.command(context_settings=dict(help_option_names=["-h", "--help"]))
 @click.argument("path", type=click.Path(exists=True), default='.')
 @click.version_option(version=None, message="%(prog)s version %(version)s")
 @click.option("-i", "--interactive", is_flag=True,
