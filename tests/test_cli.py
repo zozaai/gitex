@@ -97,6 +97,11 @@ class TestGitExCLI(unittest.TestCase):
         self.assertIn("print('hello git')", result.stdout)
         self.assertIn("```", result.stdout)
 
+    def test_help_short_flag(self):
+        result = self.runner.invoke(cli, ["-h"])
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("Usage:", result.output)
 
 if __name__ == "__main__":
     unittest.main()
