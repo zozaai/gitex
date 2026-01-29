@@ -137,9 +137,13 @@ def _is_binary_file(path: str) -> bool:
         # images
         ".png", ".jpg", ".jpeg", ".gif", ".webp",
         ".bmp", ".tif", ".tiff", ".ico",
+        ".svg",
 
         # documents
         ".pdf",
+
+        # notebooks
+        ".ipynb",
 
         # archives
         ".zip", ".tar", ".gz", ".tgz", ".rar", ".7z",
