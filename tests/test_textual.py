@@ -100,7 +100,7 @@ async def test_toggle_file_selection(mock_file_tree):
         
         # Toggle ON
         await pilot.press("space")
-        assert "[x]" in str(target_node.label)
+        assert "[✓]" in str(target_node.label)
         assert "root/root_file.txt" in app.selected_paths
         
         # Toggle OFF
@@ -122,7 +122,7 @@ async def test_recursive_selection(mock_file_tree):
         # Toggle folder ON
         await pilot.press("space")
         
-        assert "[x]" in str(folder_ui_node.label)
+        assert "[✓]" in str(folder_ui_node.label)
         assert "root/folder/file1.py" in app.selected_paths
         assert "root/folder/file2.py" in app.selected_paths
         
@@ -156,8 +156,8 @@ async def test_partial_selection_visuals(mock_file_tree):
         tree.select_node(file2_ui_node)
         await pilot.press("space")
         
-        # Now parent should be fully checked [x]
-        assert "[x]" in str(folder_ui_node.label)
+        # Now parent should be fully checked [✓]
+        assert "[✓]" in str(folder_ui_node.label)
 
 
 @pytest.mark.asyncio
@@ -285,7 +285,7 @@ async def test_unused_toggle_recursively_method(mock_file_tree):
         assert "root/folder/file1.py" in app.selected_paths
         
         # Check that it updated the UI label
-        assert "[x]" in str(folder_node.label)
+        assert "[✓]" in str(folder_node.label)
         
         # Toggle off
         app._toggle_recursively(folder_node, select=False)
