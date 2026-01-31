@@ -37,8 +37,8 @@ def _filter_nodes(nodes):
               help="Launch interactive picker to choose files")
 @click.option("--no-files", is_flag=True,
               help="Only render the directory tree without file contents.")
-@click.option("-c", "--copy", "copy_clipboard", is_flag=True,
-              help="Copy the final output to clipboard (Linux: wl-copy/xclip/xsel).")
+@click.option("-v", "--verbose", is_flag=True,
+              help="Print output to terminal in addition to copying.")
 @click.option("-d", "--base-dir", default=None,
               help="Strip this prefix from file paths when rendering file contents.")
 @click.option("-ds", "--extract-docstrings", "extract_symbol",
@@ -54,7 +54,7 @@ def _filter_nodes(nodes):
 @click.option("--force", is_flag=True, help="Force execution on non-git directories (caution: may be slow).")
 
 
-def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, include_empty_classes, dependency_focus, ignore_gitignore, show_hidden, force):
+def cli(path, interactive, no_files, verbose, base_dir, extract_symbol, include_empty_classes, dependency_focus, ignore_gitignore, show_hidden, force):
     """
     Renders a repository's file tree and optional file contents for LLM prompts.
 
@@ -140,14 +140,13 @@ def cli(path, interactive, no_files, copy_clipboard, base_dir, extract_symbol, i
 
     final_output = "".join(out_parts)
 
-    if copy_clipboard:
-        ok = copy_to_clipboard(final_output)
-        if ok:
-            click.secho("[Copied to clipboard]", err=True)
-        else:
-            click.secho("[Failed to copy to clipboard – install wl-clipboard or xclip or xsel]", fg="yellow", err=True)
+    ok = copy_to_clipboard(final_output)
+    if ok:
+        click.secho("[Copied to clipboard]", err=True)
+        if verbose:
             click.echo(final_output)
     else:
+        click.secho("[Failed to copy to clipboard – install wl-clipboard or xclip or xsel]", fg="yellow", err=True)
         click.echo(final_output)
 
 if __name__ == "__main__":
