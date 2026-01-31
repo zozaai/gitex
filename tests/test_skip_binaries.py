@@ -1,4 +1,3 @@
-# tests/test_skip_binaries.py
 import re
 from pathlib import Path
 
@@ -35,7 +34,7 @@ def repo_dir(tmp_path: Path):
 def run_gitex(runner: CliRunner, repo_dir: Path):
     return runner.invoke(
         cli,
-        [str(repo_dir)],
+        [str(repo_dir), "-v"],  # Added -v to force output to stdout
         catch_exceptions=False,  # IMPORTANT
     )
 
