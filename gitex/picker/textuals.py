@@ -134,7 +134,7 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
 
         file_node: FileNode = node.data
         
-        # If the parent itself is explicitly selected, mark it Green [x]
+        # If the parent itself is explicitly selected, mark it Green [✓]
         if file_node.path in self.selected_paths:
             mark = "[✓]"
             style = "bold green"
