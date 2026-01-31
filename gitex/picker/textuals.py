@@ -105,7 +105,7 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
 
     def _format_label(self, file_node: FileNode) -> Text:
         """Generate label with colored checkbox and name based on selection state."""
-        mark = "[x]" if file_node.path in self.selected_paths else "[ ]"
+        mark = "[✓]" if file_node.path in self.selected_paths else "[ ]"
         label = f"{mark} {file_node.name}"
         if file_node.path in self.selected_paths:
             return Text(label, style="bold green")
@@ -136,7 +136,7 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
         
         # If the parent itself is explicitly selected, mark it Green [x]
         if file_node.path in self.selected_paths:
-            mark = "[x]"
+            mark = "[✓]"
             style = "bold green"
         else:
             # Check children to see if we need a partial state [-]
@@ -146,7 +146,7 @@ class _PickerApp(App):  # pylint: disable=too-many-public-methods
             
             if child_paths and len(selected_children) == len(child_paths):
                 # All UI children selected (and parent not in set? shouldn't happen often if logic holds)
-                mark = "[x]"
+                mark = "[✓]"
                 style = "bold green"
             elif selected_children:
                 # Some children selected
