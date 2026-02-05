@@ -1,0 +1,55 @@
+name: Docker Image (gitex)
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Extract version from gitex/__init__.py
+      - name: Extract gitex version
+        id: version
+        run: |
+          VERSION=$(python - << 'EOF'
+          import re
+          from pathlib import Path
+
+          text = Path("gitex/__init__.py").read_text()
+          m = re.search(r'__version__\s*=\s*"([^"]+)"', text)
+          if not m:
+              raise SystemExit("Version not found")
+          print(m.group(1))
+          EOF
+          )
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            ghcr.io/zozaai/gitex:latest
+            ghcr.io/zozaai/gitex:${{ steps.version.outputs.version }}
