@@ -10,8 +10,11 @@ WORKDIR /app
 
 # System deps (git is needed because gitex uses GitPython repo checks)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+git \
+wl-clipboard \
+xclip \
+xsel \
+&& rm -rf /var/lib/apt/lists/*
 
 # Install your package
 COPY pyproject.toml README.md requirements.txt /app/
