@@ -31,6 +31,17 @@ Install the package via pip:
 pip install gitex
 ```
 
+## 🐳 Docker install (no Python/pip)
+
+If you only have Docker and want `gitex` as a normal command:
+
+```bash
+git clone https://github.com/zozaai/gitex
+cd gitex
+./scripts/install-gitex-docker.sh
+```
+
+
 ## 📋 Clipboard support (Linux)
 
 #### Ubuntu/Debian
