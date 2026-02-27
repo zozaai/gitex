@@ -9,16 +9,20 @@ description = "Terminal tool to prep codebases for LLMs"
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
-    {name = "zozaai", email = "info@zozaai.com"}
+  { name = "zozaai", email = "majnasai@gmail.com" }
 ]
-license = {text = "MIT"}
+license = { text = "MIT" }
+
 dependencies = [
-    "click>=8.0,<8.2",
-    "textual>=5.2.0",
-    "questionary==2.1.0",
-    "pathspec>=0.10.1,<1.0",
-    "pydantic",
-    "GitPython",
+  "click>=8.0,<8.2",
+  "textual>=5.2.0",
+  "questionary==2.1.0",
+  "pathspec>=0.10.1,<1.0",
+  "pydantic",
+  "GitPython",
+
+  # ✅ Cross-platform clipboard (macOS/Windows/Linux API)
+  "pyperclip>=1.9.0",
 ]
 
 [project.scripts]
@@ -32,10 +36,11 @@ test = [
 ]
 
 [tool.setuptools.dynamic]
-version = {attr = "gitex.__version__"}
+version = { attr = "gitex.__version__" }
 
 [tool.setuptools.packages.find]
 where = ["."]
+include = ["gitex*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

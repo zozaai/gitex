@@ -5,6 +5,7 @@ import subprocess
 from shutil import which
 from gitex.models import FileNode, NodeType
 
+
 def build_file_tree(root_path: str, ignore_hidden: bool = True) -> FileNode:
     def walk_dir(current_path: str) -> FileNode:
         name = os.path.basename(current_path)
@@ -41,37 +42,88 @@ def build_file_tree(root_path: str, ignore_hidden: bool = True) -> FileNode:
 
 def copy_to_clipboard(text: str) -> bool:
     """
-    Linux-only clipboard copy.
+    Cross-platform clipboard copy helper.
 
-    Priority:
-      1) wl-copy (Wayland)
-      2) xclip  (X11)
-      3) xsel   (X11)
+    Strategy (in order):
+      1) Try pyperclip (recommended, cross-platform Python API)
+      2) Linux Wayland  -> wl-copy
+      3) Linux X11      -> xclip
+      4) Linux X11      -> xsel
+      5) macOS          -> pbcopy
 
-    Returns True on success, False otherwise.
+    Returns:
+        True if copy succeeded.
+        False if no clipboard backend was available.
     """
-    # Prefer wl-copy when available (common on Wayland)
+
+    # --------------------------------------------------
+    # 1) Try Python-level solution (pyperclip)
+    # --------------------------------------------------
+    try:
+        import pyperclip  # type: ignore
+
+        pyperclip.copy(text)
+        return True
+    except Exception:
+        pass
+
+    # --------------------------------------------------
+    # 2) Linux Wayland
+    # --------------------------------------------------
     if which("wl-copy"):
         try:
-            p = subprocess.run(["wl-copy"], input=text.encode("utf-8"), check=True)
-            return p.returncode == 0
+            subprocess.run(
+                ["wl-copy"],
+                input=text.encode("utf-8"),
+                check=True,
+            )
+            return True
         except Exception:
-            # fall through to X11 tools
             pass
 
-    # X11 tools
+    # --------------------------------------------------
+    # 3) Linux X11 - xclip
+    # --------------------------------------------------
     if which("xclip"):
         try:
-            p = subprocess.run(["xclip", "-selection", "clipboard"], input=text.encode("utf-8"), check=True)
-            return p.returncode == 0
+            subprocess.run(
+                ["xclip", "-selection", "clipboard"],
+                input=text.encode("utf-8"),
+                check=True,
+            )
+            return True
         except Exception:
             pass
 
+    # --------------------------------------------------
+    # 4) Linux X11 - xsel
+    # --------------------------------------------------
     if which("xsel"):
         try:
-            p = subprocess.run(["xsel", "--clipboard", "--input"], input=text.encode("utf-8"), check=True)
-            return p.returncode == 0
+            subprocess.run(
+                ["xsel", "--clipboard", "--input"],
+                input=text.encode("utf-8"),
+                check=True,
+            )
+            return True
         except Exception:
             pass
 
-    return False    
+    # --------------------------------------------------
+    # 5) macOS
+    # --------------------------------------------------
+    if which("pbcopy"):
+        try:
+            subprocess.run(
+                ["pbcopy"],
+                input=text.encode("utf-8"),
+                check=True,
+            )
+            return True
+        except Exception:
+            pass
+
+    # --------------------------------------------------
+    # Nothing worked
+    # --------------------------------------------------
+    return False
