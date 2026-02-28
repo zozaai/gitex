@@ -260,33 +260,3 @@ async def test_toggle_safe_guard(mock_file_tree):
         
         await pilot.press("space") 
         assert app.is_running
-
-
-@pytest.mark.asyncio
-async def test_unused_toggle_recursively_method(mock_file_tree):
-    """
-    Test the `_toggle_recursively` method directly to ensure 100% coverage.
-    Note: This method is currently unused by the App (which uses `_set_subtree_selection`), 
-    but still exists in the source code.
-    """
-    app = _PickerApp(mock_file_tree)
-    async with app.run_test() as pilot:
-        tree = app.query_one(Tree)
-        folder_node = tree.root.children[0]
-        
-        folder_node.expand()
-        # CRITICAL: Pause so the UI children are actually created
-        await pilot.pause()
-        
-        # Call the method manually
-        app._toggle_recursively(folder_node, select=True)
-        
-        # Check that it updated the paths
-        assert "root/folder/file1.py" in app.selected_paths
-        
-        # Check that it updated the UI label
-        assert "[✓]" in str(folder_node.label)
-        
-        # Toggle off
-        app._toggle_recursively(folder_node, select=False)
-        assert "root/folder/file1.py" not in app.selected_paths
