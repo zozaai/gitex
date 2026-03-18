@@ -1,8 +1,10 @@
 # gitex/slicer.py
+from __future__ import annotations
+
 import ast
 import logging
 from pathlib import Path
-from typing import Set, Dict, List
+from typing import Set, Dict, List, Optional
 import tempfile
 
 # Force the log to system /tmp so it never gets lost or hidden.
@@ -56,7 +58,8 @@ def _candidate_module_names(module_name: str) -> List[str]:
     return [".".join(parts[i:]) for i in range(len(parts)) if parts[i:]]
 
 
-def _match_internal_module(module_name: str, module_to_file: Dict[str, Path]) -> str | None:
+def _match_internal_module(module_name: str, module_to_file: Dict[str, Path]) -> Optional[str]:
+    
     """
     Return the first matching internal module key from module_to_file.
     """
@@ -105,7 +108,7 @@ def _build_module_to_file_map(root: Path) -> Dict[str, Path]:
     return module_to_file
 
 
-def _resolve_import_from_module(file_path: Path, root: Path, module: str | None, level: int) -> str:
+def _resolve_import_from_module(file_path: Path, root: Path, module: Optional[str], level: int) -> str:
     """
     Resolve ImportFrom module into an absolute project module path.
 
@@ -194,7 +197,6 @@ def resolve_file_dependencies(root_path: str, start_files: List[str]) -> Set[str
 
     root = Path(root_path).resolve()
     module_to_file = _build_module_to_file_map(root)
-    logging.info(f"Module map keys: {sorted(module_to_file.keys())}")
 
     selected_files: Set[str] = set()
     queue: List[Path] = []

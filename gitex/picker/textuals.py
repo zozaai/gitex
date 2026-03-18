@@ -1,6 +1,8 @@
 # gitex/picker/textuals.py
+from __future__ import annotations
+
 import logging
-from typing import List, Set, Dict
+from typing import List, Set, Dict, Optional
 from pathlib import Path
 from gitex.models import FileNode
 from gitex.picker.base import Picker, DefaultPicker
@@ -265,7 +267,7 @@ class _PickerApp(App):
             self.notify(f"No classes or functions found in {file_node.name}.", severity="warning")
             return
 
-        def handle_slice_selection(selected_symbol: str | None) -> None:
+        def handle_slice_selection(selected_symbol: Optional[str]) -> None:
             if not selected_symbol:
                 return
             try:
@@ -319,7 +321,6 @@ class _PickerApp(App):
 
             root_path = self.nodes[0].path
             deps = resolve_file_dependencies(root_path, selected_python_files)
-            self.notify(f"Resolved deps: {sorted(str(Path(x).name) for x in deps)}", severity="information")
 
             abs_mapping, rel_mapping = self._get_path_mappings(self.nodes, root_path)
             root = Path(root_path).resolve()
