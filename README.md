@@ -21,6 +21,10 @@
   <img src="docs/demo1.gif" alt="gitex animated demo" width="100%" />
 </p>
 
+### Demo dependency slicing [select + "d"] >>> Picking all dependent scripts related to selected script
+<p align="center">
+  <img src="docs/gitex_demo_slicer.gif" alt="gitex animated demo" width="100%" />
+</p>
 
 
 ## 📥 Installation
